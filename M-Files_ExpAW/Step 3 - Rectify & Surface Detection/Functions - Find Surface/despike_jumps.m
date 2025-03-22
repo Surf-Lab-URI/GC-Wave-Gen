@@ -1,0 +1,109 @@
+function surf2_corr = despike_jumps(surface2,Jump_thr,Type)
+
+%%%%%% Function used to despike Shoaling waves from sudden jumps in the
+%%%%%% surface detection
+
+% Step 0
+surf2_corr = surface2;
+L_poly = 1000;
+if strcmp(Type,'SURF_AIR')
+    Imin = 501;
+    Imax = 7000;
+end
+if strcmp(Type,'SURF_WATER')
+    Imin = 501;
+    Imax = 4139;
+end
+
+% Step 1: from small to large intervals of spikes
+Int_Lev = [50 100 200 400 800];
+for iii = 1:length(Int_Lev)
+    [~,locs1] = findpeaks(abs(diff(surf2_corr)), 'minpeakheight', Jump_thr);locs1(locs1<Imin | locs1>Imax) = [];
+    locs1(locs1<100 | locs1>6900) = [];
+    DiffSurf = diff(surf2_corr);
+    IntLocs = [];
+    c = 0;
+    for ii = 1:length(locs1)-1
+        if ii == c
+            continue
+        end
+        if DiffSurf(locs1(ii))*DiffSurf(locs1(ii+1))<0 && abs(locs1(ii)-locs1(ii+1))<Int_Lev(iii)
+            I1 = locs1(ii):locs1(ii+1)-1;
+            Bound = [I1(1)-1 I1(end)+1];
+            L_trans = floor((Bound(2)-Bound(1))/3);
+            surf2_corr = vec_int2(surf2_corr,Bound,L_poly,L_trans);
+            IntLocs = [IntLocs,I1];
+            c = ii+1;
+        end
+        IntLocs = IntLocs+1;
+    end
+end
+
+%% Final single spikes
+if strcmp(Type,'SURF_AIR')
+    [~,locs4] = findpeaks(abs(diff(surf2_corr)), 'minpeakheight', Jump_thr);locs4(locs4<501 | locs4>6500) = [];
+    locs4(locs4<Imin) = [];
+    locs4(locs4>Imax) = [];
+    for iiiii = 1:length(locs4)
+        Length = (locs4(iiiii)-500:locs4(iiiii)+500);
+        SS = surf2_corr(Length);
+        fit1 = polyfit(Length,SS,50);
+        
+        L_trans = 50;
+        PolySurf2 = polyval(fit1,Length);
+        MarkInt2(1) = locs4(iiiii)-25;
+        MarkInt2(2) = locs4(iiiii)+25;
+        X0 = locs4(iiiii)-(500+1);
+        PS_mod = PolySurf2([MarkInt2(1):MarkInt2(end)]-X0);
+        a = surf2_corr(1:MarkInt2(1)-(L_trans+1));
+        c = surf2_corr(MarkInt2(end)+(L_trans+1):end);
+        IndL = MarkInt2(1)-L_trans:MarkInt2(1);
+        w1L = (MarkInt2(1)-[IndL])/(MarkInt2(1)-(MarkInt2(1)-L_trans));
+        w2L = (IndL-(MarkInt2(1)-L_trans))/(MarkInt2(1)-(MarkInt2(1)-L_trans));
+        bL = w1L.*surf2_corr(IndL)+w2L.*PolySurf2(IndL-X0);
+        bL(end)= [];
+        IndR = MarkInt2(end):MarkInt2(end)+L_trans;
+        w1R = (IndR-(MarkInt2(end)))/(MarkInt2(end)+L_trans-MarkInt2(end));
+        w2R = (MarkInt2(end)+L_trans-IndR)/(MarkInt2(end)+L_trans-MarkInt2(end));
+        bR = w1R.*surf2_corr(IndR)+w2R.*PolySurf2(IndR-X0);
+        bR(1) = [];
+        
+        surf2_corr = [a bL PS_mod bR c];
+    end
+end
+
+if strcmp(Type,'SURF_WATER')
+    try
+        [~,locs4] = findpeaks(abs(diff(surf2_corr)), 'minpeakheight', Jump_thr);locs4(locs4<Imin | locs4>Imax-500) = [];
+        locs4(locs4<Imin) = [];
+        locs4(locs4>Imax) = [];
+        for iiiii = 1:length(locs4)
+            Length = (locs4(iiiii)-250:locs4(iiiii)+250);
+            SS = surf2_corr(Length);
+            fit1 = polyfit(Length,SS,50);
+            
+            L_trans = 50;
+            PolySurf2 = polyval(fit1,Length);
+            MarkInt2(1) = locs4(iiiii)-25;
+            MarkInt2(2) = locs4(iiiii)+25;
+            X0 = locs4(iiiii)-(500+1);
+            PS_mod = PolySurf2([MarkInt2(1):MarkInt2(end)]-X0);
+            a = surf2_corr(1:MarkInt2(1)-(L_trans+1));
+            c = surf2_corr(MarkInt2(end)+(L_trans+1):end);
+            IndL = MarkInt2(1)-L_trans:MarkInt2(1);
+            w1L = (MarkInt2(1)-[IndL])/(MarkInt2(1)-(MarkInt2(1)-L_trans));
+            w2L = (IndL-(MarkInt2(1)-L_trans))/(MarkInt2(1)-(MarkInt2(1)-L_trans));
+            bL = w1L.*surf2_corr(IndL)+w2L.*PolySurf2(IndL-X0);
+            bL(end)= [];
+            IndR = MarkInt2(end):MarkInt2(end)+L_trans;
+            w1R = (IndR-(MarkInt2(end)))/(MarkInt2(end)+L_trans-MarkInt2(end));
+            w2R = (MarkInt2(end)+L_trans-IndR)/(MarkInt2(end)+L_trans-MarkInt2(end));
+            bR = w1R.*surf2_corr(IndR)+w2R.*PolySurf2(IndR-X0);
+            bR(1) = [];
+            
+            surf2_corr = [a bL PS_mod bR c];
+        end
+    end
+end
+
+end
