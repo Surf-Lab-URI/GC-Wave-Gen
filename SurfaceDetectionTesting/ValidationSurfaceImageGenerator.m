@@ -22,9 +22,10 @@ y = lambda*(2/pi-2/pi*A*cos(2*pi*alpha)./(1+A^2+2*A*cos(2*pi*alpha)));
 plot(x/mpp,y/mpp)
 axis equal
 
+v_offset = 1500;
 figure
 imax = find(round(x/mpp)+1==cols);
-is = sub2ind([rows,cols],1500-round(y(1:imax(1))/mpp),round(x(1:imax(1))/mpp)+1);
+is = sub2ind([rows,cols],v_offset-round(y(1:imax(1))/mpp),round(x(1:imax(1))/mpp)+1);
 imsurf(is)=1;
 
 imbinfill = imfill(logical(imsurf),sub2ind([rows,cols],rows,cols));
@@ -38,22 +39,15 @@ noise = randn(rows,cols);
 im = max(im+10*noise,0);
 im = imgaussfilt(im,5);
 imagesc(im)
+s = sprintf("SyntheticSurf_Crapper_%.1fcm.mat", 100*lambda);
+save(s)
+%%
 [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface] = FindWaterSurface(im);
 hold on
 plot(XPIVSurfW1_Surface, PIVSurfW1_Surface,'-r');
 
 set(gca,'DataAspectRatio',[1 1 1])
 ylim([1000,1500])
-
-
-%%
-A = zeros(cols,rows);
-A = gauss2d(A,10,[50,50]);
-figure
-imagesc(A)
-iA = ifft2(A);
-figure
-imagesc(abs(iA))
 
 %%
 function mat = gauss2d(mat, sigma, center)
