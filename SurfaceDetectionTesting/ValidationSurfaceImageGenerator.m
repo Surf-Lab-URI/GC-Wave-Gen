@@ -36,10 +36,10 @@ im = zeros(rows,cols);
 im(imbinfill) = 60;
 im(~imbinfill) = 5;
 noise = randn(rows,cols);
-im = max(im+10*noise,0);
+im = max(im+20*noise,0);
 im = imgaussfilt(im,5);
 imagesc(im)
-s = sprintf("SyntheticSurf_Crapper_%.1fcm.mat", 100*lambda);
+s = sprintf("SyntheticSurf_Crapper_Noisier%.1fcm.mat", 100*lambda);
 save(s)
 %%
 [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface] = FindWaterSurface(im);

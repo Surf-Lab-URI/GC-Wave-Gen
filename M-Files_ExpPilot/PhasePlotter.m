@@ -1,9 +1,9 @@
 %% Step through raw frames
 clear
 clc
+close all
 
-
-frames = 1090:1:1099;
+frames = 1094:1:1099;
 
 pps = 14.5; %pairs per second
 
@@ -68,8 +68,8 @@ for idx = frames
 %     plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, 'r')
     % pause
     
-    fXs(framesCtr,:) = XPIVSurfW1_Surface;
-    fYs(framesCtr,:) = PIVSurfW1_Surface;
+    % fXs(framesCtr,:) = XPIVSurfW1_Surface;
+    % fYs(framesCtr,:) = PIVSurfW1_Surface;
 
     framesCtr = framesCtr + 1;
 end

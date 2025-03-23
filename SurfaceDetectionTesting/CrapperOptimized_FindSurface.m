@@ -15,7 +15,7 @@ function [imSurf] = CrapperOptimized_FindSurface(img, Step,  S)
 %
  
  Sigma1 = 10;   % Sigma used to calculated image derivatives 
- Sigma2 = 1; % Sigma used to calculated image derivatives 
+ Sigma2 = 0.2; % Sigma used to calculated image derivatives 
 
 Eext1 = ExternalForceImage2D_fab(img,Sigma1).*S;
 Eext2 = ExternalForceImage2D_fab(img,Sigma2);
