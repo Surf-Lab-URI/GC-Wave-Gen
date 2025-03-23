@@ -17,7 +17,7 @@ plot(XPIVSurfW1_Surface, PIVSurfW1_Surface,'-r', 'LineWidth',2);
 set(gca,'DataAspectRatio',[1 1 1])
 % ylim([1000,1500])
 
-%%
+%% Real
 clear
 clc
 close all
@@ -36,7 +36,7 @@ plot(XPIVSurfW1_Surface, PIVSurfW1_Surface,'-r', 'LineWidth',2);
 %%
 function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface] = FindWaterSurface(PIVSurfW_CamAngle)
     X = 31:size(PIVSurfW_CamAngle,2)-40;
-    [imSurf] = CrapperOptimized_FindSurface(PIVSurfW_CamAngle(1:2800,X), 50, 1);
+    [imSurf] = CrapperOptimized_FindSurface(PIVSurfW_CamAngle(1:2800,X), [50,40,30,20,10,8,6],[50,40,30,20,10,8],1);
     PIVSurf_Surface_Raw = imSurf.surface;
     f = gcf;
     figure(1)
@@ -52,7 +52,7 @@ function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface] = FindWaterSurfac
     % plot(X,PIVSurf_Surface_Int,'-m')
     figure(2)
     plot(500*diff(PIVSurf_Surface_Int,2))
-    [SP,~] = spaps(1:length(PIVSurf_Surface_Int), PIVSurf_Surface_Int, 2d3);
+    [SP,~] = spaps(1:length(PIVSurf_Surface_Int), PIVSurf_Surface_Int, 2d2);
     if length(SP.coefs)>2
         PIVSurf_Surface_W = SP.coefs(2:end-1);
     else
