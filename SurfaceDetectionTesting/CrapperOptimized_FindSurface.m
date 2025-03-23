@@ -14,11 +14,14 @@ function [imSurf] = CrapperOptimized_FindSurface(img, Step,  S)
 %  Eextern : The energy function described by the image
 %
  
- Sigma1 = 10;   % Sigma used to calculated image derivatives 
- Sigma2 = 0.2; % Sigma used to calculated image derivatives 
+ Sigma1 = 10;  % Sigma used to calculated image derivatives
+ Sigma2 = 5;
+ Sigma3 = 1; % Sigma used to calculated image derivatives 
 
 Eext1 = ExternalForceImage2D_fab(img,Sigma1).*S;
 Eext2 = ExternalForceImage2D_fab(img,Sigma2);
+Eext3 = ExternalForceImage2D_fab(img,Sigma3);
+
 Eext1(Eext1<0)=0;
 badFrameBool = 0;
 warning off
@@ -34,6 +37,26 @@ for i=1:size(img,2)
         badFrameBool = 1;
     else
         gv2 = abs(Eext2(locs-Step:locs+Step,i));
+        [~, s_gv2] = max(gv2);
+        surface(i) = s_gv2+locs-Step-1;
+    end
+    
+    clear gv1 gv2 locs
+
+end
+temp = surface;
+Step = 20;
+for i=1:size(img,2)
+
+    locs = temp(i);
+
+    if isempty(locs)
+        surface(i) = nan;
+        badFrameBool = 1;
+    elseif locs + Step > size(img,1) || locs - Step < 1  % bad frame
+        badFrameBool = 1;
+    else
+        gv2 = abs(Eext3(locs-Step:locs+Step,i));
         [~, s_gv2] = max(gv2);
         surface(i) = s_gv2+locs-Step-1;
     end
