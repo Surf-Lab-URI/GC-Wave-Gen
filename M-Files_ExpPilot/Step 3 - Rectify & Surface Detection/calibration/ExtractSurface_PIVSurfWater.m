@@ -5,7 +5,10 @@ function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface,XPIVW_PIVSurfW_Sur
 %% Step 1: Find surface
 % Extract surface
 X = 31:size(PIVSurfW_CamAngle,2)-40;
-[imSurf] = Copy_of_FindSurface(PIVSurfW_CamAngle(1:2800,X), 5, 5);
+%[imSurf] = Copy_of_FindSurface(PIVSurfW_CamAngle(1:2800,X), 5, 5);
+%Originally this^ but now I use my new itererative FindSurface which works
+%better on GC waves
+[imSurf] = CrapperOptimized_FindSurface(PIVSurfW_CamAngle(1:2800,X), [50,40,30,20,10,8,6],[50,40,30,20,10,8],1);
 PIVSurf_Surface_Raw = imSurf.surface;
 PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
 PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
