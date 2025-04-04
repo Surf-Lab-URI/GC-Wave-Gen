@@ -3,19 +3,6 @@ clear
 clc
 close all
 
-frames = 1094:1:1099;
-
-pps = 14.5; %pairs per second
-
-spp = 1/pps; % seconds per pair
-
-nF = length(frames);
-fXs = zeros(nF, 4106);
-fYs = zeros(nF, 4106);
-
-i = 1;
-
-
 % Define Path
 DataPath = '/Volumes/New Volume/ExpPilot/ExpPilot5/ExpPilot5_Scene2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
 LoadPath = [DataPath 'RAW/'];
@@ -23,6 +10,19 @@ RawDataPath = [DataPath 'RAW/'];
 ResultsPath = [DataPath 'RESULTS_Andy/'];
 
 PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
+%%
+frames = 950:1:1069;
+nF = length(frames);
+fXs = zeros(nF, 4109);
+fYs = zeros(nF, 4109);
+
+pps = 14.5; %pairs per second
+
+spp = 1/pps; % seconds per pair
+
+nF = length(frames);
+fXs = zeros(nF, 4109);
+fYs = zeros(nF, 4109);
 
 yLimits = [1950,2150];
 dy = yLimits(2)-yLimits(1);
@@ -61,22 +61,21 @@ for idx = frames
     else
         CompImg(round(((framesCtr-2)/2*spp+dt_pair)*dydt)+1:round(((framesCtr-2)/2*spp+dt_pair)*dydt)+dy+1,1:size(PIVSurfW1_CamAngle,2)) = PIVSurfW1_CamAngle(yLimits(1):yLimits(2),:)/mean(PIVSurfW1_CamAngle,'all');
     end
-    % imagesc(PIVSURF_W1/mean(PIVSURF_W1,'all'), [0,3])
-    % hold on
-    % set(gca,'DataAspectRatio',[1 1 1])
-    % ylim([1900,2200])
-%     plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, 'r')
-    % pause
+
+    imagesc(PIVSurfW1_CamAngle, [0,70])
+    hold on
+    set(gca,'DataAspectRatio',[1 1 1])
+    ylim([1900,2200])
+    plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, 'r')
+    pause(0.1)
     
-    % fXs(framesCtr,:) = XPIVSurfW1_Surface;
-    % fYs(framesCtr,:) = PIVSurfW1_Surface;
+    fXs(framesCtr,:) = XPIVSurfW1_Surface;
+    fYs(framesCtr,:) = PIVSurfW1_Surface;
 
     framesCtr = framesCtr + 1;
 end
 %%
-P_threshold = 5;
-
-
+P_threshold = 1;
 
 figure(2)
 
@@ -89,6 +88,8 @@ imagesc(CompImg,'XData',x,'YData',t,[0,3])
 hold on
 xlabel('x (m)')
 ylabel('t (s)')
+s = DataPath(end-16:end-1) + " " + frames(1) + " to " + frames(end);
+title(s,'Interpreter','none')
 set(gca,'DataAspectRatio',[1*mpp 1/dydt 1])
 set(gca, 'ytick', 0:spp:t(end));
 set(gca, 'xtick', 0:0.02:x(end));

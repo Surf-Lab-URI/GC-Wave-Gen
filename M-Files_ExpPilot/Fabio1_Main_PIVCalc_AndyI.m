@@ -135,10 +135,10 @@ for i = 1:length(ExpPilots) % Main Loop
         [PIVSurfA_CamAngle] = PIVSurfAir_LFV_CamAngle_Correction(PIVSurfA_Undistorted);
         
         % Extract surface
-        [BadFramePIVSurfLFV,XLFV_Surface,LFV_Surface,XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface] = ExtractSurface_PIVSurfAir_LFV_and_correct_surface(PIVSurfA_CamAngle,PIV1_A,idx);
+        % [BadFramePIVSurfLFV,XLFV_Surface,LFV_Surface,XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface] = ExtractSurface_PIVSurfAir_LFV_and_correct_surface(PIVSurfA_CamAngle,PIV1_A,idx);
         
         % Mask PIV
-        [Mask_A] = PIVAir_Mask(PIV1_A, PIV_Surface);
+        % [Mask_A] = PIVAir_Mask(PIV1_A, PIV_Surface);
 %         PIV1_A = PIV1_A(11:3074,41:4066);
 %         PIV2_A = PIV2_A(11:3074,41:4066);
 %         Mask_A = Mask_A(11:3074,41:4066);
