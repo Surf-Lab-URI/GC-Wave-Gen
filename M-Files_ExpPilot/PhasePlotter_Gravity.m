@@ -3,10 +3,9 @@ clear
 clc
 close all
 %% Define Path
-DataPath = '/Volumes/New Volume/ExpPilot/ExpPilot5/ExpPilot5_Scene2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
+DataPath = '/media/surflab/New Volume/ExpPilot/ExpPilot5/ExpPilot5_Scene2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
 LoadPath = [DataPath 'RAW/'];
 RawDataPath = [DataPath 'RAW/'];
-ResultsPath = [DataPath 'RESULTS_Andy/'];
 
 PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
 %%
@@ -17,8 +16,8 @@ pps = 14.5; %pairs per second
 spp = 1/pps; % seconds per pair
 
 nF = length(frames);
-fXs = zeros(nF, 4109); %was 4106
-fYs = zeros(nF, 4109);
+fXs = zeros(nF, 4106); %was 4106
+fYs = zeros(nF, 4106);
 
 i = 1;
 
@@ -85,6 +84,8 @@ t = y/dydt;
 
 imagesc(CompImg,'XData',x,'YData',t,[0,3])
 hold on
+s = DataPath(end-16:end-1) + " " + frames(1) + " to " + frames(end);
+title(s,'Interpreter','none')
 xlabel('x (m)')
 ylabel('t (s)')
 set(gca,'DataAspectRatio',[1*mpp 1/dydt 1])

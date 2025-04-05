@@ -82,17 +82,17 @@ for lvl = 1:number_of_levels-1 % First level
 %     end
 %     
 
-    bxCNTc = 1; % Column counter initialization
+    % bxCNTc = 1; % Column counter initialization
         
-    for c = x % Loop in column: x-coordinate of interrogation window
-        
-        bxCNTr = 1; % Row counter initialization
+    for ii = 1:length(x) % Loop in column: x-coordinate of interrogation window
+        c = x(ii);
+        % bxCNTr = 1; % Row counter initialization
         
         bdryL = c - IW/2 + 1; % Left and right boundaries of sub-window
         bdryR = c + IW/2;
         
-        for r = y % Loop in row: y-coordinate of interrogation window
-            
+        for jj = 1:length(y) % Loop in row: y-coordinate of interrogation window
+            r = y(jj);
             bdryT = r - IW/2 + 1; % Top and bottom boundaries of sub-window
             bdryB = r + IW/2;
             
@@ -145,22 +145,26 @@ for lvl = 1:number_of_levels-1 % First level
                      %if ( length(Xpky)==1 && length(Xpkx)==1 &&  ldelx< IW/2 &&  ldely< IW/2)
                         % Velocity is round of  previous guess (do not keep 
                         % previous subpixel estimate) + local + subpix
-                        delx(bxCNTr, bxCNTc) = pdelx(bxCNTr, bxCNTc) + ldelx + SubpixelX;                           
-                        dely(bxCNTr, bxCNTc) = pdely(bxCNTr, bxCNTc) + ldely + SubpixelY;
+                        % delx(bxCNTr, bxCNTc) = pdelx(bxCNTr, bxCNTc) + ldelx + SubpixelX;                           
+                        % dely(bxCNTr, bxCNTc) = pdely(bxCNTr, bxCNTc) + ldely + SubpixelY;
+
+                        delx(jj, ii) = pdelx(jj, ii) + ldelx + SubpixelX;                           
+                        dely(jj, ii) = pdely(jj, ii) + ldely + SubpixelY;
                         %GLOBAL(bxCNTr, bxCNTc) = 1;
-                        dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
-                   
+                        dcor(jj, ii) = max(max(Xcorr));
+                        % dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
+
                     end
                     
                 end
             
             end % End of valid block check
             
-            bxCNTr = bxCNTr + 1;
+            % bxCNTr = bxCNTr + 1;
             
         end % End of row for loop
         
-        bxCNTc = bxCNTc + 1;
+        % bxCNTc = bxCNTc + 1;
         
     end % End of column for loop
     

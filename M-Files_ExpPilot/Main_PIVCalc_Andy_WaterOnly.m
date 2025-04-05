@@ -2,6 +2,7 @@
 
 clear 
 % close all
+
 clc
 
 ROOTPath = '/media/surflab/New Volume/ExpPilot/'; % FabioASI
@@ -78,7 +79,7 @@ for i = 1:length(ExpPilots) % Main Loop
     %% Processing frames
     image_index = FI+1:2:LI; %1, 3, 5,... Set of indices to loop through. Images are processed in pairs, hence the increment of 2
     
-    for idx = 547:numel(image_index)%1500 for 1.2, %548 For 5.2 %460 is good for cm waves % Main Loop through the pairs of images. Starting on the 10th pair of images for some reason.
+    for idx = 505:numel(image_index)%1500 for 1.2, %548 For 5.2 %460 is good for cm waves % Main Loop through the pairs of images. Starting on the 10th pair of images for some reason.
         
         % Indexes for images
         pair_index = (image_index(idx)+1)/2; %number this pair of images
@@ -263,11 +264,13 @@ for i = 1:length(ExpPilots) % Main Loop
 
        IntrWndw_W6 = [128 96 48 32 16 8];
        GrdSpc_W6 = [64 48 24 16 8 4];
+       tic
        [CompVelWater6] =  ComputeVelocities_Quick_NoFilt_Deform_Water_InitVelOrb(PIV1_W, PIV2_W, Mask1_W, Mask2_W, IntrWndw_W6, GrdSpc_W6, Uorb_W2*0, Vorb_W2*0);
+       toc
        figure
-       imagesc(CompVelWater6.delta_x.*CompVelWater6.Mask*CST.DX_W/CST.DT_W*100)
+       imagesc(CompVelWater6.delta_z.*CompVelWater6.Mask*CST.DX_W/CST.DT_W*100)
        c = colorbar;
-       c.Label.String = 'Horizontal Velocity (cm/s)';
+       c.Label.String = 'Vertical Velocity (cm/s)';
        hold on
        title("Deformed, pixels = " + CST.DX_W*100*4*100 + " cm " + LoadPath + "Image " + ImageNum_Water1, 'Interpreter','none')
        ylim([150,300])
