@@ -33,29 +33,7 @@ for i=1:size(img,2)
     clear gv1 gv2 locs
 
 end
-% Eext2 = ExternalForceImage2D_fab(img,Sigma2);
-% Eext3 = ExternalForceImage2D_fab(img,Sigma3);
 
-
-% for i=1:size(img,2)
-% 
-%     gv1 = abs(Eext1(:,i));
-% 
-%     [~,locs] = findpeaks(gv1, 'minpeakheight', max(gv1)/2, 'npeaks',1);
-%     if isempty(locs)
-%         surface(i) = nan;
-%         badFrameBool = 1;
-%     elseif locs + Step > size(img,1) || locs - Step < 1  % bad frame
-%         badFrameBool = 1;
-%     else
-%         gv2 = abs(Eext2(locs-Step:locs+Step,i));
-%         [~, s_gv2] = max(gv2);
-%         surface(i) = s_gv2+locs-Step-1;
-%     end
-% 
-%     clear gv1 gv2 locs
-% 
-% end
 for j = 1:length(Step)
     lastsurf = surface;
     Eext = ExternalForceImage2D_fab(img,Sigma(j+1));

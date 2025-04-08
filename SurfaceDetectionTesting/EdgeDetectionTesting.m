@@ -39,7 +39,7 @@ plot(XPIVSurfW1_Surface, PIVSurfW1_Surface,'-r', 'LineWidth',2);
 plot(-diff(PIVSurfW1_Surface,2)*10000+2000,'-m')
 
 %%
-function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface] = FindWaterSurface(PIVSurfW_CamAngle)
+function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface] = FindWaterSurface(PIVSurfW_CamAngle,surfSigmas, surfSteps, surfMask)
     X = 31:size(PIVSurfW_CamAngle,2)-40;
     [imSurf] = CrapperOptimized_FindSurface(PIVSurfW_CamAngle(1:2800,X), [50,40,30,20,10,8,6],[50,40,30,20,10,8],1);
     PIVSurf_Surface_Raw = imSurf.surface;
