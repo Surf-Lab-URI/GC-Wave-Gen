@@ -115,7 +115,7 @@ set(gca,'FontSize',24)
 %% See https://pordlabs.ucsd.edu/sgille/sioc221a_f19/lecture13_notes.pdf for info on dispersion relation plot from 2D fft
 x = 0:mpp:(size(fYs,2)-1)*mpp;
 
-iti = 1;
+iti = 1600;
 itf = 1800;
 
 figure(6)
@@ -151,7 +151,7 @@ itf = 3600;
 [X,T] = meshgrid(x,t);
 
 
-test = real(exp(1i*(160*X-2*pi*1*T)));
+test = real(exp(1i*(200*X-2*pi*1*T)));
 
 figure(6)
 imagesc(x,t(iti:itf),test(iti:itf,:))
