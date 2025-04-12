@@ -18,6 +18,7 @@ fYs = zeros(nF, 4106);
 pps = 14.5; %pairs per second
 
 spp = 1/pps; % seconds per pair
+ 
 
 yLimits = [1950,2150];
 dy = yLimits(2)-yLimits(1);
@@ -115,8 +116,8 @@ set(gca,'FontSize',24)
 %% See https://pordlabs.ucsd.edu/sgille/sioc221a_f19/lecture13_notes.pdf for info on dispersion relation plot from 2D fft
 x = 0:mpp:(size(fYs,2)-1)*mpp;
 
-iti = 1600;
-itf = 1800;
+iti = 1;
+itf = 2400;
 
 figure(6)
 imagesc(x,t(iti:itf),eta(iti:itf,:))
@@ -129,6 +130,9 @@ tfft = nufft(eta(iti:itf,:),t(iti:itf),f,1);
 
 figure(7)
 plot(f,tfft(:,500).*conj(tfft(:,500)))
+
+figure(9)
+imagesc(x,f,real(tfft))
  
 xtfft = fft(tfft,size(tfft,2)*20,2);
 
@@ -141,6 +145,8 @@ figure(8)
 imagesc(k,f,log10(spec),[0,5.6])
 hold on
 xlim([0,500])
+xlabel('k (rad/m)')
+ylabel('frequency (Hz)')
 
 %% See https://pordlabs.ucsd.edu/sgille/sioc221a_f19/lecture13_notes.pdf for info on dispersion relation plot from 2D fft
 x = 0:mpp:(size(fYs,2)-1)*mpp;
@@ -178,6 +184,8 @@ spec = xtfft.*conj(xtfft);
 
 figure(8)
 imagesc(k,f,log10(spec))
+xlabel('k (rad/m)')
+ylabel('frequency (Hz)')
 
 %%
 function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface] = FindWaterSurface(PIVSurfW_CamAngle,surfSigmas, surfSteps, surfMask)
