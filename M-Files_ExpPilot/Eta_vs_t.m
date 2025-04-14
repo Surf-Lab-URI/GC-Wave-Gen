@@ -93,18 +93,27 @@ eta_x = diff(eta,1,2);
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
 figure(3)
-plot(t,eta_var)
+ax1 = subplot(2,1,1);
+plot(t,eta_var,'LineWidth',4)
 hold on
-xlabel('Time (s)')
-ylabel('Spacial variance of surface height at each time (m^2)')
+xlabel('Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
 set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
 
-figure(4)
-plot(t,eta_x_var)
+
+ax2 = subplot(2,1,2);
+plot(t,eta_x_var,'LineWidth',4)
 hold on
-xlabel('Time (s)')
-ylabel('Spacial variance of surface slope at each time (m/m)^2')
+xlabel('Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Var}[\eta_x]$','Interpreter','latex')
 set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
+linkaxes([ax1,ax2],'x')
+xlim([30,50])
+
+% figure(4)
+% stackedplot(t,[eta_var,eta_x_var],'XLabel','Time (s)','DisplayLabels',["$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$", "$\mathrm{Var}[\eta_x]$"])
 
 
 figure(5)

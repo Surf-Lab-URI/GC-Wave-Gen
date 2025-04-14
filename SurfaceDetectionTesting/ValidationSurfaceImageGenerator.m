@@ -1,6 +1,6 @@
 clear
 clc
-close all
+% close all
 
 mpp = 41.782d-6/0.67; % meters per pixel
 
@@ -33,13 +33,16 @@ imagesc(imbinfill)
 
 figure
 im = zeros(rows,cols);
-im(imbinfill) = 60;
+im(imbinfill) = 87;
 im(~imbinfill) = 5;
 noise = randn(rows,cols);
-im = max(im+40*noise,0);
+
+im = max(im+30*noise,0);
 im = imgaussfilt(im,5);
-imagesc(im)
-s = sprintf("SyntheticSurf_Crapper_Noisiest%.1fcm.mat", 100*lambda);
+im = max(im+4*noise,0);
+imagesc(im,[0,100])
+%%
+s = sprintf("SyntheticSurf_Crapper_MultiscaleNoise%.1fcm.mat", 100*lambda);
 save(s)
 %%
 [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface] = FindWaterSurface(im);
