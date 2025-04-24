@@ -86,6 +86,7 @@ for i = 1:nF
 end
 %%
 eta = (fYs-mean(fYs(1,1:20)))*mpp;
+x_eta = fXs*mpp;
 eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
 
 eta_x = diff(eta,1,2);
@@ -93,7 +94,7 @@ eta_x = diff(eta,1,2);
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
 figure(3)
-ax1 = subplot(2,1,1);
+ax1 = subplot(3,1,1);
 plot(t,eta_var,'LineWidth',4)
 hold on
 xlabel('Time (s)','Interpreter','latex')
@@ -102,15 +103,35 @@ set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
 
 
-ax2 = subplot(2,1,2);
+ax2 = subplot(3,1,2);
 plot(t,eta_x_var,'LineWidth',4)
 hold on
 xlabel('Time (s)','Interpreter','latex')
 ylabel('$\mathrm{Var}[\eta_x]$','Interpreter','latex')
 set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
-linkaxes([ax1,ax2],'x')
 xlim([30,50])
+
+%Calculate Surface Area
+A_surf = zeros(1,length(t));
+for n = 1:length(t)
+    for i = 1:(size(eta,2)-1)
+        A_surf(n) = A_surf(n) + ((eta(n,i+1) - eta(n,i))^2 + (x_eta(n,i+1) - x_eta(n,i))^2).^0.5;
+    end
+end
+
+ax3 = subplot(3,1,3);
+l_interface = x_eta(1,end) - x_eta(1,1);
+plot(t,(A_surf - l_interface)/l_interface*100,'LineWidth',4)
+% plot(t,A_surf,'LineWidth',4)
+hold on
+xlabel('Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Surface\ Area\ Increase\ (\%)}$','Interpreter','latex')
+set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
+linkaxes([ax1,ax2,ax3],'x')
+xlim([30,50])
+
 
 % figure(4)
 % stackedplot(t,[eta_var,eta_x_var],'XLabel','Time (s)','DisplayLabels',["$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$", "$\mathrm{Var}[\eta_x]$"])

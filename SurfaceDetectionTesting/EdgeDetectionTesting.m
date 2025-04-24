@@ -49,13 +49,13 @@ legend([p1, p2, p3], 'Interpreter','latex')
 clear
 clc
 % close all
-% mpp = 6.236119402985075e-5;
-load('CapTestImg1094.mat')
+mpp = 6.236119402985075e-5;
+load('CapTestImg1095.mat')
 
 
 figure(2)
 hold off
-imagesc(PIVSurfW1_CamAngle,[0,100])
+imagesc(PIVSurfW1_CamAngle,[0,70])
 hold on
 
 [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface, p2] = FindWaterSurface(PIVSurfW1_CamAngle);
@@ -68,7 +68,7 @@ axis off
 set(gca,'FontSize',24)
 % title(s,'Interpreter','none')
 
-ylim([1750,2150])
+% ylim([1750,2150])
 
 xl = xlim;
 yl = ylim;
@@ -76,7 +76,7 @@ yl = ylim;
 lsbm = 1e-2; % length of scale bar in meters
 lsb = lsbm/mpp;
 xsb = [xl(1)+(xl(2)-xl(1))*0.05, xl(1)+(xl(2)-xl(1))*0.05+lsb];
-ysb = (yl(2) - (yl(2)-yl(1))*0.15)*[1 1];
+ysb = (yl(2) - (yl(2)-yl(1))*0.05)*[1 1];
 try
     delete(sb)
     delete(sbt)
@@ -90,7 +90,7 @@ sbt = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'FontSize',24,'Interpreter','
 mplot = plot([XPIVSurfW1_Surface(1),XPIVSurfW1_Surface(end)],[mean(PIVSurfW1_Surface),mean(PIVSurfW1_Surface)],'--m','LineWidth',2, 'DisplayName','Mean Water Level');
 
 
-delete(p2)
+% delete(p2)
 
 
 legend([p1, mplot], 'Interpreter','latex')
@@ -113,12 +113,11 @@ eta_pix = ysurf-mean(PIVSurfW1_Surface);
 [m,ix0] = max(p);
 
 x0 = xsurf(ix0);
-plot(x0,mean(ysurf),'.r','MarkerSize',15)
+% plot(x0,mean(ysurf),'.r','MarkerSize',15)
 
 L = sqrt(sum(eta_pix.^2.*(xsurf-x0).^2)/sum(eta_pix.^2))
 
 % plot([x0-L/2, x0+L/2],[mean(ysurf-20),mean(ysurf-20)],'LineWidth',6,'DisplayName','$L$')
-plot([xl(1),xl(2)],[mean(PIVSurfW1_Surface),mean(PIVSurfW1_Surface)],'--m','LineWidth',4)
 
 eta_x = diff(eta_pix);
 [eta_x_max,iexm] = max(eta_x);
@@ -128,7 +127,34 @@ plot(xsurf(iexm)+[15,-15,-15],ysurf(iexm)+[15,15,-15]*eta_x_max,'-b','LineWidth'
 s = sprintf('%.2f',eta_x_max);
 text(xsurf(iexm)-15-3,ysurf(iexm),s,'FontSize',20,'HorizontalAlignment','right','Interpreter','latex')
 ylim([1950,2100])
-legend([p1, p2, mplot], 'Interpreter','latex')
+legend([p1, mplot], 'Interpreter','latex')
+%% Slope for right side of trough
+xl = round(xlim);
+
+ixi = find(XPIVSurfW1_Surface == xl(1));
+ixf = find(XPIVSurfW1_Surface == xl(2));
+
+ysurf = PIVSurfW1_Surface(ixi:ixf);
+xsurf = XPIVSurfW1_Surface(ixi:ixf);
+
+eta_pix = ysurf-mean(PIVSurfW1_Surface);
+
+[minlocs,p] = islocalmax(ysurf);
+
+[m,ix0] = max(p);
+
+x0 = xsurf(ix0);
+% plot(x0,mean(ysurf),'.r','MarkerSize',15)
+
+eta_x = diff(eta_pix);
+[eta_x_max,iexm] = min(eta_x);
+plot(xsurf(iexm),ysurf(iexm),'.r','MarkerSize',15)
+plot(xsurf(iexm)+[-50,50],ysurf(iexm)+[-50,50]*eta_x_max,'--b','LineWidth',4)
+plot(xsurf(iexm)+[15,15,-15],ysurf(iexm)+[15,-15,-15]*eta_x_max,'-b','LineWidth',4)
+s = sprintf('%.2f',-eta_x_max);
+text(xsurf(iexm)+15+3,ysurf(iexm),s,'FontSize',20,'HorizontalAlignment','left','Interpreter','latex')
+ylim([1950,2100])
+legend([p1, mplot], 'Interpreter','latex')
 
 %%
 function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface,p3] = FindWaterSurface(PIVSurfW_CamAngle)
