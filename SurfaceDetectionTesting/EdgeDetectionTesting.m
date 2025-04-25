@@ -48,19 +48,42 @@ legend([p1, p2, p3], 'Interpreter','latex')
 %% Real
 clear
 clc
+
+idx = 1095;
+
 % close all
 mpp = 6.236119402985075e-5;
-load('CapTestImg1095.mat')
+% load('CapTestImg1095.mat')
+
+DataPath = '/media/surflab/New Volume/ExpPilot/ExpPilot5/ExpPilot5_Scene2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
+LoadPath = [DataPath 'RAW/'];
+RawDataPath = [DataPath 'RAW/'];
+ResultsPath = [DataPath 'RESULTS_Andy/'];
+
+PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
+
+PIV1Dir_temp = PIVWaterDir;
+imagename = [PIV1Dir_temp(idx+1).folder '/' PIV1Dir_temp(idx+1).name];
+[IM1] = load_Image_IOCoreView_12MP(imagename);
+PIVSurf_W1_Raw = IM1;
+PIVSURF_W1 = PIVSurf_W1_Raw./(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)/max(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)))';
+
+% Lens distortion correction
+[PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
+% % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % TO BE DONE!!!!!
+
+% Camera Angle Correction
+[PIVSurfW1_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
 
 
-figure(2)
+figure(5)
 hold off
 imagesc(PIVSurfW1_CamAngle,[0,70])
 hold on
 
 [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface, p2] = FindWaterSurface(PIVSurfW1_CamAngle);
 
-figure(2)
+figure(5)
 hold on
 p1 = plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, '-r', 'LineWidth',2,'DisplayName','Surface Detection Output');
 set(gca,'DataAspectRatio',[1 1 1])
@@ -159,7 +182,10 @@ legend([p1, mplot], 'Interpreter','latex')
 %%
 function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface,p3] = FindWaterSurface(PIVSurfW_CamAngle)
     X = 31:size(PIVSurfW_CamAngle,2)-40;
-    [imSurf] = CrapperOptimized_FindSurface(PIVSurfW_CamAngle(1:2800,X), [50,40,30,20,10,8,6],[50,40,30,20,10,8],1);
+    surfSigmas = [50,40,30,20,10,8,6];
+    surfSteps = [50,40,30,20,10,8];
+    surfMask = 1;
+    [imSurf] = CrapperOptimized_FindSurface(PIVSurfW_CamAngle(1:2800,X), surfSigmas,surfSteps,surfMask);
     PIVSurf_Surface_Raw = imSurf.surface;
     f = gcf;
     figure(f)

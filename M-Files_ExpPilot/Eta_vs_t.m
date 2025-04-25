@@ -10,12 +10,12 @@ ResultsPath = [DataPath 'RESULTS_Andy/'];
 
 PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
 %%
-frames = 0:1:7049; %Range of frame numbers (the numbers in the file names, which start at zero).
+frames = 0:1:2000; %Range of frame numbers (the numbers in the file names, which start at zero).
 nF = length(frames);
 fXs = zeros(nF, 4106);
 fYs = zeros(nF, 4106);
 
-pps = 14.5; %pairs per second
+pps = 14.5; % pairs per second
 
 spp = 1/pps; % seconds per pair
  
@@ -31,8 +31,8 @@ DeltaT = nF/2*spp;
 
 mpp = 41.782d-6/0.67; % meters per pixel for corrected Surf Water images.
 
-surfSigmas = [50,40,30,20,10];
-surfSteps = [50,40,30,20];
+surfSigmas = [50,40,30,20,10,8,6];%[50,40,30,20,10]; % Going down to 6 doesn't work so well once the waves get bigger, but seems to be necessary to capture all small features.
+surfSteps = [50,40,30,20,10,8];%[50,40,30,20];
 surfMask = 1;
 %% Assemble array of times since 
 t = zeros(1,nF);
@@ -89,7 +89,7 @@ eta = (fYs-mean(fYs(1,1:20)))*mpp;
 x_eta = fXs*mpp;
 eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
 
-eta_x = diff(eta,1,2);
+eta_x = diff(eta/mpp,1,2);
 
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
@@ -111,6 +111,7 @@ ylabel('$\mathrm{Var}[\eta_x]$','Interpreter','latex')
 set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
 xlim([30,50])
+ylim([0,0.1])
 
 %Calculate Surface Area
 A_surf = zeros(1,length(t));
@@ -119,6 +120,7 @@ for n = 1:length(t)
         A_surf(n) = A_surf(n) + ((eta(n,i+1) - eta(n,i))^2 + (x_eta(n,i+1) - x_eta(n,i))^2).^0.5;
     end
 end
+
 
 ax3 = subplot(3,1,3);
 l_interface = x_eta(1,end) - x_eta(1,1);
@@ -131,6 +133,7 @@ set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
 linkaxes([ax1,ax2,ax3],'x')
 xlim([30,50])
+ylim([0,4])
 
 
 % figure(4)
@@ -143,6 +146,26 @@ hold on
 xlabel('Frame Number')
 ylabel('Spacial variance of surface slope at each time (m/m)^2')
 set(gca,'FontSize',24)
+%% Plot max slope vs time / frame number
+
+figure(6)
+% plot(frames,max(abs(eta_x),[],2))
+plot(max(abs(eta_x),[],2))
+figure(7)
+hold off
+plot(abs(eta_x(272,:))*1000)
+hold on
+plot(-eta(272,:)/mpp)
+set(gca,'DataAspectRatio',[1 1 1])
+%% Just plot a frame
+PIV1Dir_temp = PIVWaterDir;
+idx = 1165;
+imagename = [PIV1Dir_temp(idx+1).folder '/' PIV1Dir_temp(idx+1).name];
+[IM1] = load_Image_IOCoreView_12MP(imagename);
+figure
+imagesc(IM1,[0,85])
+set(gca,'DataAspectRatio',[1 1 1])
+
 %% See https://pordlabs.ucsd.edu/sgille/sioc221a_f19/lecture13_notes.pdf for info on dispersion relation plot from 2D fft
 x = 0:mpp:(size(fYs,2)-1)*mpp;
 
@@ -229,9 +252,9 @@ function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface] = FindWaterSurfac
     % hold on
     % plot(X,PIVSurf_Surface_Raw,'-g')
     
-    PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
-    PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
-    PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
+    % PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
+    % PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
+    % PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
     PIVSurf_Surface_Int = filt_spray(PIVSurf_Surface_Raw);
 
     % plot(X,PIVSurf_Surface_Int,'-k')
