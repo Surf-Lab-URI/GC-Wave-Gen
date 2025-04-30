@@ -96,7 +96,7 @@ set(gca,'FontSize',24)
 xl = xlim;
 yl = ylim;
 
-lsbm = 1e-2; % length of scale bar in meters
+lsbm = 0.5e-2; % length of scale bar in meters
 lsb = lsbm/mpp;
 xsb = [xl(1)+(xl(2)-xl(1))*0.05, xl(1)+(xl(2)-xl(1))*0.05+lsb];
 ysb = (yl(2) - (yl(2)-yl(1))*0.05)*[1 1];
@@ -107,7 +107,7 @@ end
 sb = plot(xsb,ysb,'-k', 'LineWidth',10);
 
 
-sbl = sprintf('%d cm',lsbm*100);
+sbl = sprintf('%.1f cm',lsbm*100);
 sbt = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'FontSize',24,'Interpreter','latex');
 
 mplot = plot([XPIVSurfW1_Surface(1),XPIVSurfW1_Surface(end)],[mean(PIVSurfW1_Surface),mean(PIVSurfW1_Surface)],'--m','LineWidth',2, 'DisplayName','Mean Water Level');
@@ -116,7 +116,7 @@ mplot = plot([XPIVSurfW1_Surface(1),XPIVSurfW1_Surface(end)],[mean(PIVSurfW1_Sur
 % delete(p2)
 
 
-legend([p1, mplot], 'Interpreter','latex')
+legend([p1,p2, mplot], 'Interpreter','latex')
 
 % figure(3)
 % plot(-diff(PIVSurfW1_Surface,2)*10000+2000,'-m')
@@ -177,7 +177,7 @@ plot(xsurf(iexm)+[15,15,-15],ysurf(iexm)+[15,-15,-15]*eta_x_max,'-b','LineWidth'
 s = sprintf('%.2f',-eta_x_max);
 text(xsurf(iexm)+15+3,ysurf(iexm),s,'FontSize',20,'HorizontalAlignment','left','Interpreter','latex')
 ylim([1950,2100])
-legend([p1, mplot], 'Interpreter','latex')
+legend([p1, p2, mplot], 'Interpreter','latex')
 
 %%
 function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface,p3] = FindWaterSurface(PIVSurfW_CamAngle)
