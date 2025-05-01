@@ -1,4 +1,4 @@
-function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface,XPIVW_PIVSurfW_Surface,PIVW_PIVSurfW_Surface,PIVW_Surface,T2,RotAngle,DY] = ExtractSurface_PIVSurfWater(PIVSurfW_CamAngle,PIV_W,Water_Surface)
+  function [BadFramePIVSurfW,XPIVSurfW_Surface,PIVSurfW_Surface,XPIVW_PIVSurfW_Surface,PIVW_PIVSurfW_Surface,PIVW_Surface,T2,RotAngle,DY] = ExtractSurface_PIVSurfWater(PIVSurfW_CamAngle,PIV_W,Water_Surface)
 
 %% PIVSurf Water surface detection
 
@@ -9,21 +9,27 @@ XX = 1:2800;
 
 %%% Pre-extrapolation
 %PIVSurfW_CamAngle2 = adapthisteq(PIVSurfW_CamAngle/max(PIVSurfW_CamAngle(:)),'NumTiles',[8 8],'NBins',20); %reduce the sensitivity to eliminate noise
+
 PIVSurfW_CamAngle2 = PIVSurfW_CamAngle;
 DX = 200;
 S_T = PIVSurfW_CamAngle2(XX(1+DX:end),YY);
 S_B = PIVSurfW_CamAngle2(XX(1:end-DX),YY);
 S2 = S_T-S_B;
-S = imfilter(S2,fspecial('gaussian',64,64),'replicate');
+% S = imfilter(S2,fspecial('gaussian',64,64),'replicate');
 
-[imSurf] = FindSurface_Water(S, 5, 5);
+S = S2;
+surfSigmas = [50,40,30,20,10,8,6];
+surfSteps = [50,40,30,20,10,8];
+surfMask = 1;
+[imSurf] = CrapperOptimized_FindSurface(S,surfSigmas, surfSteps, surfMask) %FindSurface_Water(S, 5, 5);
 PIVSurf_Surface_Raw = imSurf.surface;
-PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
-PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
-PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
-PIVSurf_Surface_Int = filt_spray(PIVSurf_Surface_Raw);
+% PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
+% PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
+% PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
+% PIVSurf_Surface_Int = filt_spray(PIVSurf_Surface_Raw);
+PIVSurf_Surface_Int = PIVSurf_Surface_Raw;
 PIVSurf_Surface_Int = smoothn(PIVSurf_Surface_Int, 'robust');
-[SP,~] = spaps(1:length(PIVSurf_Surface_Int), PIVSurf_Surface_Int, 2d4); %1d4
+[SP,~] = spaps(1:length(PIVSurf_Surface_Int), PIVSurf_Surface_Int, 3d2); %2d4 for looking at larger gravity waves
 if length(SP.coefs)>2
     PIVSurf_Surface_W = SP.coefs(2:end-1);
 else

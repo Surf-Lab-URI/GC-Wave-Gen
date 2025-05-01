@@ -52,7 +52,7 @@ clc
 idx = 1095;
 
 % close all
-mpp = 6.236119402985075e-5;
+mpp = 6.236119402985075e-5; %This is only correct for the pilot data
 % load('CapTestImg1095.mat')
 
 DataPath = '/media/surflab/New Volume/ExpPilot/ExpPilot5/ExpPilot5_Scene2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
