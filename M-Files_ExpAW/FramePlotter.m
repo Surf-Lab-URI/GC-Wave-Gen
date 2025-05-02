@@ -10,7 +10,8 @@ PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
 
 PIV1Dir_temp = PIVWaterDir;
 
-mpp = 6.236119402985075e-5; %Accurate only for the main dataset, not the pilot
+
+mpp = 6.493178e-5; %Accurate only for the main dataset, not the pilot
 
 % -ExpAW1Run2 around 1340 but not as prominant
 % -ExpAW5 Run2 super steep parasitic? capillaries. Perhaps periodic crapper
@@ -189,10 +190,10 @@ figure('units','pixels','Position',[0,0,1500,200])
 
 f = 1;
 tic
-idxs = 800:2:900
-F = struct('cdata',cell(length(idxs),1),'colormap',cell(length(idxs),1));
+idxs = 750:1349
+% F = struct('cdata',cell(length(idxs),1),'colormap',cell(length(idxs),1));
 parfor i = 1:length(idxs)
-    idx = idxs(i)
+    idx = idxs(i);
     imagename = [PIV1Dir_temp(idx+1).folder '/' PIV1Dir_temp(idx+1).name];
     [IM1] = load_Image_IOCoreView_12MP(imagename);
 
@@ -229,12 +230,13 @@ parfor i = 1:length(idxs)
     axis off
     set(gca,'FontSize',24)
 
-    plot(XPIVSurfW1_Surface,PIVSurfW1_Surface,'-r','LineWidth',2)
-    xlim([XPIVSurfW1_Surface(1),XPIVSurfW1_Surface(end)])
-    ylim([1750,2250])
-    
-    xl = xlim;
-    yl = ylim;
+    plot(XPIVSurfW1_Surface,PIVSurfW1_Surface,'-r','LineWidth',1)
+
+    xl = [501,4139];
+    yl = [1750,2250];
+
+    xlim(xl);
+    ylim(yl);
     
     lsbm = 1e-2; % length of scale bar in meters
     lsb = lsbm/mpp;
@@ -244,27 +246,29 @@ parfor i = 1:length(idxs)
         delete(sb)
         delete(sbt)
     end
-    sb = plot(xsb,ysb,'-k', 'LineWidth',10);
+    sb = plot(xsb,ysb,'-k', 'LineWidth',5);
     
     
     sbl = sprintf('%d cm',lsbm*100);
-    sbt = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'FontSize',24,'Interpreter','latex');
-    F(i) = getframe(gcf);
+    sbt = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'FontSize',16,'Interpreter','latex');
+    % F(i) = getframe(gcf);
 
-    fname = ['videoframes/test' num2str(i)]; % full name of image
-    print('-djpeg','-r600',fname)     % save image with '-r200' resolution
+    fname = ['videoframes/' DataPath(end-23:end-1) '_' num2str(idx) '.jpg']; % full name of image
+    % print('-djpeg','-r600',fname)     % save image with '-r200' resolution
+    % saveas(gcf,fname,'tiffn')
+    exportgraphics(gca,fname,'Resolution','1200')
 end
 toc
 %% Generate Video File from frames save in previous section
-vw = VideoWriter('test.avi', 'Uncompressed AVI');
-vw.FrameRate = 5;
+vw = VideoWriter('ExpAW5_acc0.22_W5V_Run2_750to1350_ED.avi', 'Uncompressed AVI');
+vw.FrameRate = 2;
 open(vw);
 vw
 
-for i = 1:length(idxs)
-    fname = ['videoframes/test' num2str(i)]; % full name of image
-    I = imread([fname '.jpg']);       % read saved image
-    frame = im2frame(I);              % convert image to frame
+for i = idxs(1):2:idxs(end-1)
+    fname = ['videoframes/' DataPath(end-23:end-1) '_' num2str(i)]; % full name of image
+    I = imread([fname '.jpg']); % read saved image
+    frame = im2frame(I(4:1190,10:8685,:)); % convert image to frame
     writeVideo(vw,frame)
 end
 
