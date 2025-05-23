@@ -4,11 +4,11 @@ clear
 % close all
 clc
 
-ROOTPath = '\\spray3\d\data\EXPERIMENTS\'; % Spray4
+ROOTPath = '/media/surflab/Working24/ExpAW/';
 
 ExpDir = dir([ROOTPath 'Exp*']); % Directory with all the experiments
 
-for i = 1%:length(ExpDir) % Loop on the number of experiments
+for i = 5%:length(ExpDir) % Loop on the number of experiments
 
     ExpAW = ExpDir(i).name(6);
     Acc = ExpDir(i).name(11:14);
@@ -29,12 +29,12 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
         expName = ['ExpAW' ExpAW '_acc' Acc '_W' Wind 'V_LidOpen' ];
     end
 
-    RunDir = dir([ExpDir(i).folder '\' ExpDir(i).name '\Exp*Run*']);
+    RunDir = dir([ExpDir(i).folder '/' ExpDir(i).name '/Exp*Run*']);
     %%% When we want to analyze the "NoFog" runs, we have to modify RunDir.
     %%% But also, we have to modify the script a little bit to skip PIVAir
     %%% analysis
 
-    for ii = 9%:numel(RunDir) % Loop on the number of Runs
+    for ii = 1%numel(RunDir) % Loop on the number of Runs
 
         runName = RunDir(ii).name(20:end);
         if strcmp(ExpAW,'6')
@@ -42,31 +42,33 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
         end
 
         % Define Path
-        DataPath = [ROOTPath expName '\' expName '_' runName '\' ];
-        LoadPath = [DataPath 'RAW\'];
-        RawDataPath = [DataPath 'RAW\'];
-        ResultsPath = [DataPath 'RESULTS_fabio\'];
+        DataPath = [ROOTPath expName '/' expName '_' runName '/' ];
+        LoadPath = [DataPath 'RAW/'];
+        RawDataPath = [DataPath 'RAW/'];
+        ResultsPath = [DataPath 'RESULTS_andy/'];
 
         % Air
-        AirPath = [ResultsPath 'Air\'];
-        SavePIVAirPath = [AirPath 'PIV_Velocities_raw\'];
-        SaveSurfAirPath = [AirPath 'Surfaces\'];
-        FieldsAirPath  = [AirPath 'CALCULATED_FIELDS\'];
-        SaveCartAirPath  = [FieldsAirPath 'Cartesian Fields\Velocity\'];
-        SaveCartDiffAirPath  = [FieldsAirPath 'Cartesian Fields\Gradients\'];
-        SavePressAirPath  = [FieldsAirPath 'Cartesian Fields\Pressure\'];
-        SaveTransfoAirPath  = [AirPath 'transfo\'];
+        AirPath = [ResultsPath 'Air/'];
+        SavePIVAirPath = [AirPath 'PIV_Velocities_raw/'];
+        SaveSurfAirPath = [AirPath 'Surfaces/'];
+        FieldsAirPath  = [AirPath 'CALCULATED_FIELDS/'];
+        SaveCartAirPath  = [FieldsAirPath 'Cartesian Fields/Velocity/'];
+        SaveCartDiffAirPath  = [FieldsAirPath 'Cartesian Fields/Gradients/'];
+        SavePressAirPath  = [FieldsAirPath 'Cartesian Fields/Pressure/'];
+        SaveTransfoAirPath  = [AirPath 'transfo/'];
 
         % Water
-        WaterPath = [ResultsPath 'Water\'];
-        SavePIVWaterPath = [WaterPath 'PIV_Velocities_raw\'];
-        SaveSurfWaterPath = [WaterPath 'Surfaces\'];
-        FieldsWaterPath  = [WaterPath 'CALCULATED_FIELDS\'];
-        SaveCartWaterPath  = [FieldsWaterPath 'Cartesian Fields\Velocity\'];
-        SaveCartDiffWaterPath  = [FieldsWaterPath 'Cartesian Fields\Gradients\'];
-        SavePressWaterPath  = [FieldsWaterPath 'Cartesian Fields\Pressure\'];
-        SaveTransfoWaterPath  = [WaterPath 'transfo\'];
+        WaterPath = [ResultsPath 'Water/'];
+        SavePIVWaterPath = [WaterPath 'PIV_Velocities_raw/'];
+        SaveSurfWaterPath = [WaterPath 'Surfaces/'];
+        FieldsWaterPath  = [WaterPath 'CALCULATED_FIELDS/'];
+        SaveCartWaterPath  = [FieldsWaterPath 'Cartesian Fields/Velocity/'];
+        SaveCartDiffWaterPath  = [FieldsWaterPath 'Cartesian Fields/Gradients/'];
+        SavePressWaterPath  = [FieldsWaterPath 'Cartesian Fields/Pressure/'];
+        SaveTransfoWaterPath  = [WaterPath 'transfo/'];
 
+        %Make directories for results. Uncomment if you want to save the
+        %results.
         if ~exist(SavePIVAirPath, 'dir')
             mkdir(SavePIVAirPath);
         end
@@ -139,13 +141,14 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
         CST.SURFACE_TENSION = 0.074; % surface tension in [N/m]
         CST.TOLERANCE = 10e-14;      % numerical tolerance
 
+        %Uncomment to save parameters used for processing
         %%% Save Parameters
-        save([ResultsPath expName '_' runName '_Parameters.mat'],'CST')
+        % save([ResultsPath expName '_' runName '_Parameters.mat'],'CST')
 
         %% Frame to process
-        PIVAirDir = dir([LoadPath 'PIV Air\' '*.raw']);
-        PIVWaterDir = dir([LoadPath 'PIV Water\' '*.raw']);
-        PIVSurf_LFV_Dir = dir([LoadPath 'PIVSurf Air - LFV\' '*.raw']);
+        PIVAirDir = dir([LoadPath 'PIV Air/' '*.raw']);
+        PIVWaterDir = dir([LoadPath 'PIV Water/' '*.raw']);
+        PIVSurf_LFV_Dir = dir([LoadPath 'PIVSurf Air - LFV/' '*.raw']);
         FI = 0;
         LI = min(length(PIVWaterDir)-1,length(PIVAirDir)-1);
 
@@ -165,7 +168,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
         %% Processing frames
         image_index = FI+1:2:LI;
 
-        for idx = 2001%numel(image_index) % Main Loop
+        for idx = 866/2%720/2%numel(image_index) % Main Loop
 
             % Indexes for images
             pair_index = (image_index(idx)+1)/2;
@@ -198,7 +201,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
 
             %%%% Check if windshield wipers in the field of view
             % Load PIVSurf Air - LFV
-            imagename = [LoadPath 'PIVSurf Air - LFV\' expName '_' runName '_PIVSurf Air - LFV_' PairNum '.raw'];
+            imagename = [LoadPath 'PIVSurf Air - LFV/' expName '_' runName '_PIVSurf Air - LFV_' PairNum '.raw'];
             [IM1] = (load_Image_IOCoreView_48MP(imagename));
             PIVSurf_A_Raw = IM1;
             PIVSURF_A = PIVSurf_A_Raw./Norm_LFV;
@@ -218,7 +221,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
                 CST.isPIVAir = 1;
 
                 % Load First PIV image Air
-                filename = [LoadPath 'PIV Air\' expName '_' runName '_PIV Air_' ImageNum_Air1 '.raw'];
+                filename = [LoadPath 'PIV Air/' expName '_' runName '_PIV Air_' ImageNum_Air1 '.raw'];
                 [IM1] = (load_Image_IOCoreView_12MP(filename));
                 % Remove Bad Pixels and interpolate
                 for iiii = 1:length(BadPix_Air)
@@ -227,7 +230,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
                 IM1_A = fillmissing(IM1,'pchip');
 
                 % Load Second PIV image Air
-                filename = [LoadPath 'PIV Air\' expName '_' runName '_PIV Air_' ImageNum_Air2 '.raw'];
+                filename = [LoadPath 'PIV Air/' expName '_' runName '_PIV Air_' ImageNum_Air2 '.raw'];
                 [IM1] = (load_Image_IOCoreView_12MP(filename));
                 % Remove Bad Pixels and interpolate
                 for iiii = 1:length(BadPix_Air)
@@ -260,7 +263,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
                 [BadFramePIVSurfLFV,XLFV_Surface,LFV_Surface,XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface] = ExtractSurface_PIVSurfAir_LFV_and_correct_surface(PIVSurfA_CamAngle,PIV1_A,idx);
 
                 % Mask PIV
-                [Mask_A] = PIVAir_Mask(PIV1_A, PIV_Surface);
+                [Mask_A] = PIVAir_Mask(PIV1_A, PIV_Surface-50);
                 %         PIV1_A = PIV1_A(11:3074,41:4066);
                 %         PIV2_A = PIV2_A(11:3074,41:4066);
                 %         Mask_A = Mask_A(11:3074,41:4066);
@@ -275,7 +278,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
 
             %%%% Check if the windshield wipers in the FoV
             %-%-%-%-%-%-%-%-%-%-% Load PIVSurf W1
-            imagename = [LoadPath 'PIVSurf Water\' expName '_' runName '_PIVSurf Water_' ImageNum_Water1 '.raw'];
+            imagename = [LoadPath 'PIVSURF Water/' expName '_' runName '_PIVSURF Water_' ImageNum_Water1 '.raw'];
             [IM1] = load_Image_IOCoreView_12MP(imagename);
             % Remove Bad Pixels and interpolate
             for iiii = 1:length(BadPix_SurfW)
@@ -284,7 +287,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
             PIVSurf_W1_Raw = fillmissing(IM1,'pchip');
             PIVSURF_W1 = PIVSurf_W1_Raw./Norm_PIVSurfW1;
             %-%-%-%-%-%-%-%-%-%-% Load PIVSurf W2
-            imagename = [LoadPath 'PIVSurf Water\' expName '_' runName '_PIVSurf Water_' ImageNum_Water2 '.raw'];
+            imagename = [LoadPath 'PIVSURF Water/' expName '_' runName '_PIVSURF Water_' ImageNum_Water2 '.raw'];
             [IM1] = load_Image_IOCoreView_12MP(imagename);
             % Remove Bad Pixels and interpolate
             for iiii = 1:length(BadPix_SurfW)
@@ -311,7 +314,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PIV images - CONVERT TO MAT
                 % First PIV image Water
-                filename = [LoadPath 'PIV Water\' expName '_' runName '_PIV Water_' ImageNum_Water1 '.raw'];
+                filename = [LoadPath 'PIV Water/' expName '_' runName '_PIV Water_' ImageNum_Water1 '.raw'];
                 [IM1] = (load_Image_IOCoreView_12MP(filename));
                 % Remove Bad Pixels and interpolate
                 for iiii = 1:length(BadPix_Water)
@@ -320,7 +323,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
                 IM1_W = fillmissing(IM1,'pchip');
 
                 % Second PIV image Water
-                filename = [LoadPath 'PIV Water\' expName '_' runName '_PIV Water_' ImageNum_Water2 '.raw'];
+                filename = [LoadPath 'PIV Water/' expName '_' runName '_PIV Water_' ImageNum_Water2 '.raw'];
                 [IM1] = (load_Image_IOCoreView_12MP(filename));
                 % Remove Bad Pixels and interpolate
                 for iiii = 1:length(BadPix_Water)
@@ -694,7 +697,7 @@ for i = 1%:length(ExpDir) % Loop on the number of experiments
 
         content = [' EXPERIMENT ' expName ' ' runName ' DONE ' ];
         disp(content)
-        psw = fscanf(fopen('C:\Users\Administrator\Desktop\content_Fabio.txt','r'),'%s');
+        psw = fscanf(fopen('C:/Users/Administrator/Desktop/content_Fabio.txt','r'),'%s');
         obj = 'PIV MainCalc velocity AIR-WATER';
 
         %     % Email to notify finished experiment
