@@ -23,16 +23,32 @@ S = imfilter(S2,fspecial('gaussian',64,64),'replicate');
 S(S<0) = NaN;
 S = fillmissing(S,'nearest'); %faster than S = smoothn(S,0);
 
-Step = 20;
-Sigma = 5; %20;
-[imSurf] = FindSurface(S, Step, Sigma);
+%OG from DE:
+% Step = 20;
+% Sigma = 5; %20;
+% [imSurf] = FindSurface(S, Step, Sigma);
+
+surfSigmas = [100,50,40,30];
+surfSteps = [100,50,40];
+surfMask = 1;
+[imSurf] = CrapperOptimized_FindSurface(S,surfSigmas, surfSteps, surfMask)
+
+figure(6)
+plot(imSurf.surface)
+imagesc(S)
+colormap gray
+axis equal
+hold on
+plot(imSurf.surface)
+
+
 PIVSurf_Surface_Raw = imSurf.surface;
 PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
 PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
 PIVSurf_Surface_Raw=despike_fab(PIVSurf_Surface_Raw);
 PIVSurf_Surface_Int = filt_spray(PIVSurf_Surface_Raw);
 PIVSurf_Surface_Int = smoothn(PIVSurf_Surface_Int, 'robust');
-[SP,~] = spaps(1:length(PIVSurf_Surface_Int), PIVSurf_Surface_Int, 2d4); %10000);
+[SP,~] = spaps(1:length(PIVSurf_Surface_Int), PIVSurf_Surface_Int, 2d3); %Originally 2d4 in DE    %10000);
 if length(SP.coefs)>2
     PIVSurf_Surface_A = SP.coefs(2:end-1);
 else
