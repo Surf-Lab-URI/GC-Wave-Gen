@@ -28,18 +28,18 @@ S = fillmissing(S,'nearest'); %faster than S = smoothn(S,0);
 % Sigma = 5; %20;
 % [imSurf] = FindSurface(S, Step, Sigma);
 
-surfSigmas = [100,50,40,30];
-surfSteps = [100,50,40];
+surfSigmas = [100,50,40];
+surfSteps = [100,50,];
 surfMask = 1;
-[imSurf] = CrapperOptimized_FindSurface(S,surfSigmas, surfSteps, surfMask)
+[imSurf] = CrapperOptimized_FindSurface(S,surfSigmas, surfSteps, surfMask);
 
-figure(6)
-plot(imSurf.surface)
-imagesc(S)
-colormap gray
-axis equal
-hold on
-plot(imSurf.surface)
+% figure(6)
+% plot(imSurf.surface)
+% imagesc(S)
+% colormap gray
+% axis equal
+% hold on
+% plot(imSurf.surface)
 
 
 PIVSurf_Surface_Raw = imSurf.surface;
