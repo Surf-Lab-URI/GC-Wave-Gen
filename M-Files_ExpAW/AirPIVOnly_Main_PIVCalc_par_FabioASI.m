@@ -177,7 +177,7 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
         CSTfilename = "CST.mat";
         save(CSTfilename,'-fromstruct',CST)
 tic
-        parfor idx = 1000:1500%720/2%numel(image_index) % Main Loop15
+        parfor idx = 300:700%1000:1500%720/2%numel(image_index) % Main Loop15
 
             % Indexes for images
             CST = load(CSTfilename);
@@ -285,117 +285,117 @@ tic
             end
 
             %% Water
-            % 
-            % %%%% Check if the windshield wipers in the FoV
-            % %-%-%-%-%-%-%-%-%-%-% Load PIVSurf W1
-            % imagename = [LoadPath 'PIVSURF Water/' expName '_' runName '_PIVSURF Water_' ImageNum_Water1 '.raw'];
-            % [IM1] = load_Image_IOCoreView_12MP(imagename);
-            % % Remove Bad Pixels and interpolate
-            % for iiii = 1:length(BadPix_SurfW)
-            %     IM1(BadPix_SurfW(iiii,1),BadPix_SurfW(iiii,2)) = NaN;
-            % end
-            % PIVSurf_W1_Raw = fillmissing(IM1,'pchip');
-            % PIVSURF_W1 = PIVSurf_W1_Raw./Norm_PIVSurfW1;
-            % %-%-%-%-%-%-%-%-%-%-% Load PIVSurf W2
-            % imagename = [LoadPath 'PIVSURF Water/' expName '_' runName '_PIVSURF Water_' ImageNum_Water2 '.raw'];
-            % [IM1] = load_Image_IOCoreView_12MP(imagename);
-            % % Remove Bad Pixels and interpolate
-            % for iiii = 1:length(BadPix_SurfW)
-            %     IM1(BadPix_SurfW(iiii,1),BadPix_SurfW(iiii,2)) = NaN;
-            % end
-            % PIVSurf_W2_Raw = fillmissing(IM1,'pchip');
-            % PIVSURF_W2 = PIVSurf_W2_Raw./Norm_PIVSurfW2;
-            % 
-            % Check_W1 = mean(imbinarize(PIVSURF_W1,30));
-            % Check_W1(1:300) = NaN;
-            % Check_W2 = mean(imbinarize(PIVSURF_W2,30));
-            % Check_W2(1:300) = NaN;
-            % 
-            % if sum(Check_W1<0.05)>10 || sum(Check_W2<0.05)>10
-            % 
-            %     CST.isPIVWater = 0;
-            %     disp(['WINDSHIELD WIPER in WATER Surface!'])
-            %     continue
-            %     % We skip Water calculations when windshield wipers in the FoV of
-            %     % PIVSurf Water
-            % 
-            % else
-            %     CST.isPIVWater = 1;
-            % 
-            %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PIV images - CONVERT TO MAT
-            %     % First PIV image Water
-            %     filename = [LoadPath 'PIV Water/' expName '_' runName '_PIV Water_' ImageNum_Water1 '.raw'];
-            %     [IM1] = (load_Image_IOCoreView_12MP(filename));
-            %     % Remove Bad Pixels and interpolate
-            %     for iiii = 1:length(BadPix_Water)
-            %         IM1(BadPix_Water(iiii,1),BadPix_Water(iiii,2)) = NaN;
-            %     end
-            %     IM1_W = fillmissing(IM1,'pchip');
-            % 
-            %     % Second PIV image Water
-            %     filename = [LoadPath 'PIV Water/' expName '_' runName '_PIV Water_' ImageNum_Water2 '.raw'];
-            %     [IM1] = (load_Image_IOCoreView_12MP(filename));
-            %     % Remove Bad Pixels and interpolate
-            %     for iiii = 1:length(BadPix_Water)
-            %         IM1(BadPix_Water(iiii,1),BadPix_Water(iiii,2)) = NaN;
-            %     end
-            %     IM2_W = fillmissing(IM1,'pchip');
-            % 
-            %     % Camera Angle Correction
-            %     [PIVWater1_CamAngle] = PIVWater_CamAngle_Correction(IM1_W); %Image 1
-            %     [PIVWater2_CamAngle] = PIVWater_CamAngle_Correction(IM2_W); %Image 2
-            %     PIVWater1_CamAngle(PIVWater1_CamAngle<0) = 0;
-            %     PIVWater2_CamAngle(PIVWater2_CamAngle<0) = 0;
-            %     % Correct less brightness in second image
-            %     PIVWater2_CamAngle = PIVWater2_CamAngle*mean(PIVWater1_CamAngle(:),'omitnan')/mean(PIVWater2_CamAngle(:),'omitnan');
-            %     PIVWater2_CamAngle(PIVWater2_CamAngle>1023) = 1023;
-            % 
-            %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-process
-            %     %%% PIVWater 1
-            %     PIV = PIVWater1_CamAngle;
-            %     [PIV] = Pre_process_PIV_Image_Water_IM1(PIV); %pre_proc 1st image
-            %     PIV1_W = PIV;
-            %     %%% PIVWater 2
-            %     PIV = PIVWater2_CamAngle;
-            %     [PIV] = Pre_process_PIV_Image_Water_IM2(PIV); %pre_proc 2nd image
-            %     PIV2_W = PIV;
-            % 
-            %     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Surface detection
-            %     %-%-%-%-%-%-%-%-%-%-% Water 1
-            %     % Lens distortion correction
-            %     [PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
-            %     % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
-            %     % TO BE DONE!!!!! BUT PROBABLY NOT NEEDED
-            % 
-            %     % Camera Angle Correction
-            %     [PIVSurfW1_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
-            % 
-            %     % Extract surface
-            %     [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface, XPIVW_PIVSurfW1_Surface, PIVW_PIVSurfW1_Surface, PIVW1_Surface] = ExtractSurface_PIVSurfWater(PIVSurfW1_CamAngle,PIV1_W,'1');
-            % 
-            %     % Mask PIVWater1
-            %     [Mask1_W] = PIVWater_Mask(PIV1_W, PIVW1_Surface);
-            % 
-            %     %%%%%% COORDINATE TRANSFORMATION DATA
-            %     [h, w] = size(PIV1_W);
-            %     [Uorb_W1,Vorb_W1] = Compute_OrbVel_Water(XPIVW_PIVSurfW1_Surface, PIVW_PIVSurfW1_Surface, CST, h, w, PIV1_W);
-            % 
-            %     %-%-%-%-%-%-%-%-%-%-% Water 2
-            %     % Lens distortion correction
-            %     [PIVSurfW2_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W2);
-            %     % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % TO BE
-            %     % DONE!!!!! PROBABLY NOT NEEDED
-            % 
-            %     % Camera Angle Correction
-            %     [PIVSurfW2_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW2_Undistorted);
-            % 
-            %     % Extract surface
-            %     [BadFramePIVSurfW2, XPIVSurfW2_Surface, PIVSurfW2_Surface, XPIVW_PIVSurfW2_Surface, PIVW_PIVSurfW2_Surface, PIVW2_Surface,T2_W,RotAngle_W,DY_W] = ExtractSurface_PIVSurfWater(PIVSurfW2_CamAngle,PIV2_W,'2');
-            % 
-            %     % Mask PIVWater2
-            %     [Mask2_W] = PIVWater_Mask(PIV2_W, PIVW2_Surface);
-            % 
-            % end
+
+            %%%% Check if the windshield wipers in the FoV
+            %-%-%-%-%-%-%-%-%-%-% Load PIVSurf W1
+            imagename = [LoadPath 'PIVSURF Water/' expName '_' runName '_PIVSURF Water_' ImageNum_Water1 '.raw'];
+            [IM1] = load_Image_IOCoreView_12MP(imagename);
+            % Remove Bad Pixels and interpolate
+            for iiii = 1:length(BadPix_SurfW)
+                IM1(BadPix_SurfW(iiii,1),BadPix_SurfW(iiii,2)) = NaN;
+            end
+            PIVSurf_W1_Raw = fillmissing(IM1,'pchip');
+            PIVSURF_W1 = PIVSurf_W1_Raw./Norm_PIVSurfW1;
+            %-%-%-%-%-%-%-%-%-%-% Load PIVSurf W2
+            imagename = [LoadPath 'PIVSURF Water/' expName '_' runName '_PIVSURF Water_' ImageNum_Water2 '.raw'];
+            [IM1] = load_Image_IOCoreView_12MP(imagename);
+            % Remove Bad Pixels and interpolate
+            for iiii = 1:length(BadPix_SurfW)
+                IM1(BadPix_SurfW(iiii,1),BadPix_SurfW(iiii,2)) = NaN;
+            end
+            PIVSurf_W2_Raw = fillmissing(IM1,'pchip');
+            PIVSURF_W2 = PIVSurf_W2_Raw./Norm_PIVSurfW2;
+
+            Check_W1 = mean(imbinarize(PIVSURF_W1,30));
+            Check_W1(1:300) = NaN;
+            Check_W2 = mean(imbinarize(PIVSURF_W2,30));
+            Check_W2(1:300) = NaN;
+
+            if sum(Check_W1<0.05)>10 || sum(Check_W2<0.05)>10
+
+                CST.isPIVWater = 0;
+                disp(['WINDSHIELD WIPER in WATER Surface!'])
+                continue
+                % We skip Water calculations when windshield wipers in the FoV of
+                % PIVSurf Water
+
+            else
+                CST.isPIVWater = 1;
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PIV images - CONVERT TO MAT
+                % First PIV image Water
+                filename = [LoadPath 'PIV Water/' expName '_' runName '_PIV Water_' ImageNum_Water1 '.raw'];
+                [IM1] = (load_Image_IOCoreView_12MP(filename));
+                % Remove Bad Pixels and interpolate
+                for iiii = 1:length(BadPix_Water)
+                    IM1(BadPix_Water(iiii,1),BadPix_Water(iiii,2)) = NaN;
+                end
+                IM1_W = fillmissing(IM1,'pchip');
+
+                % Second PIV image Water
+                filename = [LoadPath 'PIV Water/' expName '_' runName '_PIV Water_' ImageNum_Water2 '.raw'];
+                [IM1] = (load_Image_IOCoreView_12MP(filename));
+                % Remove Bad Pixels and interpolate
+                for iiii = 1:length(BadPix_Water)
+                    IM1(BadPix_Water(iiii,1),BadPix_Water(iiii,2)) = NaN;
+                end
+                IM2_W = fillmissing(IM1,'pchip');
+
+                % Camera Angle Correction
+                [PIVWater1_CamAngle] = PIVWater_CamAngle_Correction(IM1_W); %Image 1
+                [PIVWater2_CamAngle] = PIVWater_CamAngle_Correction(IM2_W); %Image 2
+                PIVWater1_CamAngle(PIVWater1_CamAngle<0) = 0;
+                PIVWater2_CamAngle(PIVWater2_CamAngle<0) = 0;
+                % Correct less brightness in second image
+                PIVWater2_CamAngle = PIVWater2_CamAngle*mean(PIVWater1_CamAngle(:),'omitnan')/mean(PIVWater2_CamAngle(:),'omitnan');
+                PIVWater2_CamAngle(PIVWater2_CamAngle>1023) = 1023;
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-process
+                %%% PIVWater 1
+                PIV = PIVWater1_CamAngle;
+                [PIV] = Pre_process_PIV_Image_Water_IM1(PIV); %pre_proc 1st image
+                PIV1_W = PIV;
+                %%% PIVWater 2
+                PIV = PIVWater2_CamAngle;
+                [PIV] = Pre_process_PIV_Image_Water_IM2(PIV); %pre_proc 2nd image
+                PIV2_W = PIV;
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Surface detection
+                %-%-%-%-%-%-%-%-%-%-% Water 1
+                % Lens distortion correction
+                [PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
+                % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+                % TO BE DONE!!!!! BUT PROBABLY NOT NEEDED
+
+                % Camera Angle Correction
+                [PIVSurfW1_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
+
+                % Extract surface
+                [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface, XPIVW_PIVSurfW1_Surface, PIVW_PIVSurfW1_Surface, PIVW1_Surface] = ExtractSurface_PIVSurfWater(PIVSurfW1_CamAngle,PIV1_W,'1');
+
+                % Mask PIVWater1
+                [Mask1_W] = PIVWater_Mask(PIV1_W, PIVW1_Surface);
+
+                %%%%%% COORDINATE TRANSFORMATION DATA
+                [h, w] = size(PIV1_W);
+                [Uorb_W1,Vorb_W1] = Compute_OrbVel_Water(XPIVW_PIVSurfW1_Surface, PIVW_PIVSurfW1_Surface, CST, h, w, PIV1_W);
+
+                %-%-%-%-%-%-%-%-%-%-% Water 2
+                % Lens distortion correction
+                [PIVSurfW2_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W2);
+                % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % TO BE
+                % DONE!!!!! PROBABLY NOT NEEDED
+
+                % Camera Angle Correction
+                [PIVSurfW2_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW2_Undistorted);
+
+                % Extract surface
+                [BadFramePIVSurfW2, XPIVSurfW2_Surface, PIVSurfW2_Surface, XPIVW_PIVSurfW2_Surface, PIVW_PIVSurfW2_Surface, PIVW2_Surface,T2_W,RotAngle_W,DY_W] = ExtractSurface_PIVSurfWater(PIVSurfW2_CamAngle,PIV2_W,'2');
+
+                % Mask PIVWater2
+                [Mask2_W] = PIVWater_Mask(PIV2_W, PIVW2_Surface);
+
+            end
 
 
             %% PIV CALCULATIONS
@@ -478,12 +478,12 @@ tic
                 I = ismember(PixRes_Air.XPIV_LFV_Surface,PIVRes_Air.xPIV);
                 PIVRes_Air.Phase = PixRes_Air.PIV_LFV_Surface_smth_phase(I);
 
-                SavedSurfsAir = struct()
+                CST.isSurfAir = 1;
+
+                SavedSurfsAir = struct();
                 SavedSurfsAir.PIVRes_Air = PIVRes_Air;
                 SavedSurfsAir.PixRes_Air = PixRes_Air;
                 SavedSurfsAir.CST = CST;
-
-                CST.isSurfAir = 1;
 
                 %%% Save surface
                 SurfFileName = [expName '_Scene' runName '_Surfaces_' PairNum];
@@ -497,27 +497,92 @@ tic
 
             end
 
-            % %%%% Water
-            % try
-            %     %%% Surface 1
-            %     % "Pixel Resolution"
-            %     Build_PixRes_Water1
-            % 
-            %     % "PIV" Resolution
-            %     Build_PIVRes_Water
-            % 
-            %     %%% Surface 2
-            %     Build_PixRes_Water2
-            % 
-            %     save([SaveSurfWaterPath SurfFileName '.mat'] , 'PixRes_Water1', 'PIVRes_Water', 'PixRes_Water2','CST');
-            %     CST.isSurfWater = 1;
-            % 
-            % catch
-            % 
-            %     disp(['NO SURFACE WATER AVAILABLE for Pair ' PairNum ' : ']);
-            %     CST.isSurfWater = 0;
-            % 
-            % end
+            %%%% Water
+            PixRes_Water1 = struct();
+            % PIVRes_Water = struct();
+            PixRes_Water2 = struct();
+
+            % CompVelWater isn't calculated in this air-only script, but the below code needs some
+            % of its fields
+            % CompVelWater = struct();
+            % CompVelWater.GS = GrdSpc_W;
+
+            try
+                %%% Surface 1
+                % "Pixel Resolution"
+                PixRes_Water1.BadFramePIVSurfW1 = BadFramePIVSurfW1;
+                PixRes_Water1.XPIVW_PIVSurfW1_Surface = XPIVW_PIVSurfW1_Surface; % PIVWater x-axis in PIV Water coordinates
+                PixRes_Water1.PIVW_PIVSurfW1_Surface = PIVW_PIVSurfW1_Surface; % PIVWater surface in PIV Water coordinates
+                PixRes_Water1.PIVW_PIVSurfW1_Surface_smth = filtfilt(ones(1,round(FiltLength/3.333))/(round(FiltLength/3.333)), 1, PIVW_PIVSurfW1_Surface); % smoothed version to calculate gradients
+                PixRes_Water1.PIVW1_Surface = PIVW1_Surface; % Fits perfectly with imagesc(PIV1_W)
+                
+                [XPIVW_LFV_Surface,PIVW_LFV_Surface_smth] = transform_phase_from_PIVAir_to_PIVWater(XPIV_LFV_Surface,PixRes_Air.PIV_LFV_Surface_smth); %%% Find phase from LFV in PIVWater coordinates
+                % This is needed to calculate the phase in water space
+                % coordinates with long components from LFV
+                
+                PixRes_Water1.XLFV_Water = XPIVW_LFV_Surface;
+                PixRes_Water1.LFV_Water_smth = PIVW_LFV_Surface_smth;
+                PixRes_Water1.LFV_Water_smth_phase = angle(hilbert(-PixRes_Water1.LFV_Water_smth+mean(PixRes_Water1.LFV_Water_smth,'omitnan')));
+                
+                PixRes_Water1.pair_index = pair_index;
+                PixRes_Water1.ImageNum_1 = ImageNum_Water1;
+                PixRes_Water1.PairNum = PairNum;
+                PixRes_Water1.ExpName = ['ExpAW' ExpAW];
+                PixRes_Water1.Acc = Acc;
+                PixRes_Water1.Wind = Wind;
+                PixRes_Water1.Run = runName;
+
+                % "PIV" Resolution
+                % PIVRes_Water.BadFramePIVSurfW1 = BadFramePIVSurfW1;
+                % PIVRes_Water.xPIV = CompVelWater.xPIV; % The x coordinates of center of IntrWndws
+                % PIVRes_Water.zPIV = CompVelWater.zPIV; % The y coordinates of center of IntrWndws
+                % PIVRes_Water.GS = CompVelWater.GS; % Final grid spacing
+                % PIVRes_Water.PIVW1_Surface = (PixRes_Water1.PIVW1_Surface(PIVRes_Water.xPIV) )/CompVelWater.GS;%Fits perfectly with imagesc(CompVel.delta_x)
+                % PIVRes_Water.pair_index = pair_index;
+                % PIVRes_Water.ImageNum_1 = ImageNum_Water1;
+                % PIVRes_Water.ImageNum_2 = ImageNum_Water2;
+                % PIVRes_Water.PairNum = PairNum;
+                % PIVRes_Water.ExpName = ['ExpAW' ExpAW];
+                % PIVRes_Water.Acc = Acc;
+                % PIVRes_Water.Wind = Wind;
+                % PIVRes_Water.Run = runName;
+                % PIVRes_Water.PF_Surface = length(PIVRes_Water.zPIV)-PIVRes_Water.PIVW1_Surface+1; % It is needed for transformations;
+                % %it's the surface that would be detected on an upside down PIV image . %Fits perfectly with imagesc(flipud(CompVelWater.delta_x))
+                % I = ismember(PixRes_Water1.XLFV_Water,PIVRes_Water.xPIV);
+                % PIVRes_Water.Phase = PixRes_Water1.LFV_Water_smth_phase(I);
+
+                %%% Surface 2
+                PixRes_Water2.BadFramePIVSurfW2 = BadFramePIVSurfW2;
+                PixRes_Water2.XPIVW_PIVSurfW2_Surface = XPIVW_PIVSurfW2_Surface;
+                PixRes_Water2.PIVW_PIVSurfW2_Surface = PIVW_PIVSurfW2_Surface;
+                PixRes_Water2.PIVW2_Surface = PIVW2_Surface;
+                
+                PixRes_Water2.pair_index = pair_index;
+                PixRes_Water2.ImageNum_2 = ImageNum_Water2;
+                PixRes_Water2.PairNum = PairNum;
+                PixRes_Water2.ExpName = ['ExpAW' ExpAW];
+                PixRes_Water2.Acc = Acc;
+                PixRes_Water2.Wind = Wind;
+                PixRes_Water2.Run = runName;
+
+                CST.isSurfWater = 1;
+
+                SavedSurfsWater = struct();
+                SavedSurfsWater.CST = CST;
+                SavedSurfsWater.PixRes_Water1 = PixRes_Water1
+                SavedSurfsWater.PixRes_Water2 = PixRes_Water2
+                % SavedSurfsWater.PIVRes_Water1 = PIVRes_Water1
+
+
+                save([SaveSurfWaterPath SurfFileName '.mat'] , '-fromstruct',SavedSurfsWater);
+
+
+            catch
+
+                disp(['NO SURFACE WATER AVAILABLE for Pair ' PairNum ' : ']);
+                CST.isSurfWater = 0;
+
+            end
 
             %% SAVING raw PIV
             %%%% Air
