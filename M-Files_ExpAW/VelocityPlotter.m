@@ -92,7 +92,7 @@ end
 %% Save Smoothed Velocity frames for a video
 clear f
 
-velfig = figure('units','pixels','Position',[0,0,600,1200]);
+velfig = figure('units','pixels','Position',[0,0,1200,2400]);
 drawnow
 f = 1;
 tic
@@ -393,6 +393,7 @@ PIVAirDir_Cart = dir([LoadPath 'CALCULATED_FIELDS/Cartesian Fields/Velocity/' '*
 idx = 1;
 fname = [PIVAirDir_Cart(idx).folder '/' PIVAirDir_Cart(idx).name];
 Cartesian_Air = load(fname);
+CST = Cartesian_Air.CST;
 
 up_b = zeros(length(PIVAirDir_Cart),size(Cartesian_Air.Mask,1));
 wp_b = zeros(length(PIVAirDir_Cart),size(Cartesian_Air.Mask,1));
@@ -406,6 +407,7 @@ idxs = 1:length(PIVAirDir_Cart);
 
 tic
 parfor i = 1:length(idxs)
+
     idx = idxs(i);
     fname = [PIVAirDir_Cart(idx).folder '/' PIVAirDir_Cart(idx).name];
     Cartesian_Air = load(fname);
@@ -430,12 +432,193 @@ parfor i = 1:length(idxs)
     dupwpdz_b(i,:) = mean(diff(up.*wp,1,1),2,'omitnan');
 
     PairNums(i) = str2double(Cartesian_Air.PairNum);
+    disp(['Pair ' Cartesian_Air.PairNum ' Finished!'])
 
 end
 toc
 
+pps = 14.5; % pairs per second
+spp = 1/pps; % seconds per pair
+t = PairNums*spp;
+
 figure
-plot(PairNums, movmean(upwp_b(:,500),40))
+plot(PairNums, movmean(upwp_b(:,500),10))
+%% Plot u'w'
+figure('units','pixels','Position',[0,0,1000,1000])
+plot(PairNums, movmean(upwp_b(:,500),30),'LineWidth',4)
+hold on
+xlabel('Pair Number','Interpreter','latex')
+ylabel("$\overline{u'v'}\ \mathrm{(m^2/s^2)}$",'Interpreter','latex')
+set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
+title('0.6 cm above mean water level, 30 pair moving mean','Interpreter','latex')
+
+figure('units','pixels','Position',[0,0,1000,1000])
+plot(t, movmean(upwp_b(:,500),30),'LineWidth',4)
+hold on
+xlabel('Time (s)','Interpreter','latex')
+ylabel("$\overline{u'v'}\ \mathrm{(m^2/s^2)}$",'Interpreter','latex')
+set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
+title('0.6 cm above mean water level, 30 pair moving mean','Interpreter','latex')
+
+%%
+figure('units','pixels','Position',[0,0,1000,1000])
+imagesc(movmean(upwp_b,10,1)','XData',t,[-0.05,0.02])
+hold on
+colormap gray
+xlim([0,50])
+ylim([0,600])
+set(gca,'ytick',[])
+xlabel('Time (s)','Interpreter','latex')
+set(gca,'FontSize',30)
+set(gca,'TickLabelInterpreter','latex')
+c = colorbar;
+c.Label.String = "$\overline{u'v'}\ \mathrm{(m^2/s^2)}$";
+c.Label.Interpreter = 'latex';
+c.TickLabelInterpreter = 'latex';
+drawnow
+
+xl = xlim;
+yl = ylim;
+
+lsbm = 1e-2; % length of scale bar in meters
+lsb = lsbm/CST.DX/CST.GS;
+xsb = ((xl(2)-xl(1))*0.03)*[1 1];
+ysb = [yl(2)-(yl(2)-yl(1))*0.12, yl(2)-(yl(2)-yl(1))*0.12+lsb];
+try
+    delete(sb1)
+    delete(sbt1)
+end
+sb1 = plot(xsb,ysb,'-r', 'LineWidth',5);
+
+
+sbl = sprintf('%d cm',lsbm*100);
+sbt1 = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'Color','red','FontSize',16,'Interpreter','latex');
+
+
+
+%% Compute surface height and slope variance
+% clear
+
+pps = 14.5; % pairs per second
+
+spp = 1/pps; % seconds per pair
+
+dt_pair = 22.222e-3; % time between pictures in a given pair
+
+LoadPath = '/media/surflab/Working24/ExpAW/ExpAW5_acc0.22_W5V/ExpAW5_acc0.22_W5V_Run2/RESULTS_andy/';
+
+WaterSurfDir = dir([LoadPath 'Water/Surfaces/' '*.mat']);
+nPairs = length(WaterSurfDir);
+nF = nPairs*2;
+
+%Load first pair to get dimensions
+idx = 1;
+fname = [WaterSurfDir(idx).folder '/' WaterSurfDir(idx).name];
+SavedSurfsWater = load(fname);
+CST = SavedSurfsWater.CST;
+PixRes_Water1 = SavedSurfsWater.PixRes_Water1;
+PixRes_Water2 = SavedSurfsWater.PixRes_Water2;
+
+fXs = zeros(nF, length(PixRes_Water1.PIVW_PIVSurfW1_Surface));
+fYs = zeros(nF, length(PixRes_Water1.PIVW_PIVSurfW1_Surface));
+pairIndices = zeros(nF,1);
+pairnums = zeros(nF,1);
+ImageNums = zeros(nF,1);
+t = zeros(nF,1);
+
+tic
+for i = 1:length(WaterSurfDir)
+    fname = [WaterSurfDir(i).folder '/' WaterSurfDir(i).name];
+    SavedSurfsWater = load(fname);
+    pair_index = SavedSurfsWater.PixRes_Water1.pair_index;
+    
+
+    PixRes_Water1 = SavedSurfsWater.PixRes_Water1;
+    PixRes_Water2 = SavedSurfsWater.PixRes_Water2;
+    
+    fXs(i*2-1,:) = PixRes_Water1.XPIVW_PIVSurfW1_Surface;
+    fYs(i*2-1,:) = PixRes_Water1.PIVW_PIVSurfW1_Surface;
+    pairIndices(i*2-1) = PixRes_Water1.pair_index;
+    pairnums(i*2-1) = str2num(PixRes_Water1.PairNum);
+    ImageNums(i*2-1) = str2num(PixRes_Water1.ImageNum_1);
+    t(i*2-1) = pairnums(i*2-1)*spp;
+
+    fXs(i*2,:) = PixRes_Water2.XPIVW_PIVSurfW2_Surface;
+    fYs(i*2,:) = PixRes_Water2.PIVW_PIVSurfW2_Surface;
+    pairIndices(i*2) = PixRes_Water2.pair_index;
+    pairnums(i*2) = str2num(PixRes_Water1.PairNum);
+    ImageNums(i*2) = str2num(PixRes_Water1.ImageNum_1);
+    t(i*2) = pairnums(i*2)*spp + dt_pair;
+end
+toc
+
+% figure(2)
+% for i = 1:nF
+%     plot(fXs(i,:), -fYs(i,:))
+%     set(gca,'DataAspectRatio',[1 1 1])
+%     ylim([-800,-600])
+%     pause(0.1)
+% end
+
+mpp = CST.DX_W;
+eta = (fYs-mean(fYs(1:20,:),'all'))*mpp;
+x_eta = fXs*mpp;
+eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
+
+eta_x = diff(eta/mpp,1,2);
+
+eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
+
+figure(3)
+ax1 = subplot(3,1,1);
+plot(t,eta_var,'LineWidth',4)
+hold on
+xlabel('Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
+set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
+
+
+ax2 = subplot(3,1,2);
+plot(t,eta_x_var,'LineWidth',4)
+hold on
+xlabel('Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Var}[\eta_x]$','Interpreter','latex')
+set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
+xlim([30,50])
+ylim([0,0.1])
+
+%Calculate Surface Area
+A_surf = zeros(1,length(t));
+for n = 1:length(t)
+    for i = 1:(size(eta,2)-1)
+        A_surf(n) = A_surf(n) + ((eta(n,i+1) - eta(n,i))^2 + (x_eta(n,i+1) - x_eta(n,i))^2).^0.5;
+    end
+end
+
+
+ax3 = subplot(3,1,3);
+l_interface = x_eta(1,end) - x_eta(1,1);
+plot(t,(A_surf - l_interface)/l_interface*100,'LineWidth',4)
+% plot(t,A_surf,'LineWidth',4)
+hold on
+xlabel('Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Surface\ Area\ Increase\ (\%)}$','Interpreter','latex')
+set(gca,'FontSize',24)
+set(gca,'TickLabelInterpreter','latex')
+linkaxes([ax1,ax2,ax3],'x')
+xlim([30,50])
+ylim([0,4])
+
+figure(5)
+plot(ImageNums,eta_x_var)
+hold on
+xlabel('Frame Number')
+ylabel('Spacial variance of surface slope at each time (m/m)^2')
+set(gca,'FontSize',24)
 
 %% Generate Video File from frames save in previous section
 vw = VideoWriter('ExpAW5_acc0.22_W5V_Run2_750to1350_ED.avi', 'Uncompressed AVI');

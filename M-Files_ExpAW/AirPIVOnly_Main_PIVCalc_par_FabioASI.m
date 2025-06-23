@@ -177,7 +177,7 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
         CSTfilename = "CST.mat";
         save(CSTfilename,'-fromstruct',CST)
 tic
-        parfor idx = 300:700%1000:1500%720/2%numel(image_index) % Main Loop15
+        parfor idx = 1:1500%1000:1500%720/2%numel(image_index) % Main Loop15
 
             % Indexes for images
             CST = load(CSTfilename);
@@ -209,80 +209,80 @@ tic
             
             %% Air
 
-            %%%% Check if windshield wipers in the field of view
-            % Load PIVSurf Air - LFV
-            imagename = [LoadPath 'PIVSurf Air - LFV/' expName '_' runName '_PIVSurf Air - LFV_' PairNum '.raw'];
-            [IM1] = (load_Image_IOCoreView_48MP(imagename));
-            PIVSurf_A_Raw = IM1;
-            PIVSURF_A = PIVSurf_A_Raw./Norm_LFV;
-
-            % If the mean of imbinarized PIVSurf Air - LFV goes to zero at some point, it means
-            % there's a drop due to the windshield wiper and we skip that image
-            Check = mean(imbinarize(PIVSURF_A,100));
-            if sum(Check<0.01)>10
-
-                CST.isPIVAir = 0;
-                disp(['WINDSHIELD WIPER in AIR Surface!'])
-                continue
-                % We skip Air calculations when windshield wipers in the FoV of
-                % PIVSurf Air - LFV
-
-            else
-                CST.isPIVAir = 1;
-
-                % Load First PIV image Air
-                filename = [LoadPath 'PIV Air/' expName '_' runName '_PIV Air_' ImageNum_Air1 '.raw'];
-                [IM1] = (load_Image_IOCoreView_12MP(filename));
-                % Remove Bad Pixels and interpolate
-                for iiii = 1:length(BadPix_Air)
-                    IM1(BadPix_Air(iiii,1),BadPix_Air(iiii,2)) = NaN;
-                end
-                IM1_A = fillmissing(IM1,'pchip');
-
-                % Load Second PIV image Air
-                filename = [LoadPath 'PIV Air/' expName '_' runName '_PIV Air_' ImageNum_Air2 '.raw'];
-                [IM1] = (load_Image_IOCoreView_12MP(filename));
-                % Remove Bad Pixels and interpolate
-                for iiii = 1:length(BadPix_Air)
-                    IM1(BadPix_Air(iiii,1),BadPix_Air(iiii,2)) = NaN;
-                end
-                IM2_A = fillmissing(IM1,'pchip');
-
-                % Camera Angle Correction
-                [PIVAir1_CamAngle] = PIVAir_CamAngle_Correction(IM1_A); %Image 1
-                [PIVAir2_CamAngle] = PIVAir_CamAngle_Correction(IM2_A); %Image 2
-
-                %%% Pre-process
-                PIV = PIVAir1_CamAngle;
-                [PIV] = Pre_process_PIV_Image_Air(PIV); %pre_proc 1st image
-                PIV1_A = PIV;
-                PIV = PIVAir2_CamAngle;
-                [PIV] = Pre_process_PIV_Image_Air(PIV); %pre_proc 2nd image
-                PIV2_A = PIV;
-
-                %%% Surface detection
-
-                % Lens distortion correction
-                [PIVSurfA_Undistorted] = PIVSurfA_LFV_LensDistCorr(PIVSURF_A,cameraParams);
-                % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % TO BE DONE!!!!!
-
-                % Camera Angle Correction
-                [PIVSurfA_CamAngle] = PIVSurfAir_LFV_CamAngle_Correction(PIVSurfA_Undistorted);
-
-                % Extract surface
-                [BadFramePIVSurfLFV,XLFV_Surface,LFV_Surface,XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface] = ExtractSurface_PIVSurfAir_LFV_and_correct_surface(PIVSurfA_CamAngle,PIV1_A,idx);
-
-                % Mask PIV
-                [Mask_A] = PIVAir_Mask(PIV1_A, PIV_Surface-50);
-                %         PIV1_A = PIV1_A(11:3074,41:4066);
-                %         PIV2_A = PIV2_A(11:3074,41:4066);
-                %         Mask_A = Mask_A(11:3074,41:4066);
-                %         %%% NOTE: This last modification after masking must be implemented
-                %         %%% in all the subsequent steps, and also in the previous (for
-                %         %%% comparison!!)
-                %         [XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface] = Modify_after_PIVAir_Mask(XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface);
-
-            end
+            % %%%% Check if windshield wipers in the field of view
+            % % Load PIVSurf Air - LFV
+            % imagename = [LoadPath 'PIVSurf Air - LFV/' expName '_' runName '_PIVSurf Air - LFV_' PairNum '.raw'];
+            % [IM1] = (load_Image_IOCoreView_48MP(imagename));
+            % PIVSurf_A_Raw = IM1;
+            % PIVSURF_A = PIVSurf_A_Raw./Norm_LFV;
+            % 
+            % % If the mean of imbinarized PIVSurf Air - LFV goes to zero at some point, it means
+            % % there's a drop due to the windshield wiper and we skip that image
+            % Check = mean(imbinarize(PIVSURF_A,100));
+            % if sum(Check<0.01)>10
+            % 
+            %     CST.isPIVAir = 0;
+            %     disp(['WINDSHIELD WIPER in AIR Surface!'])
+            %     continue
+            %     % We skip Air calculations when windshield wipers in the FoV of
+            %     % PIVSurf Air - LFV
+            % 
+            % else
+            %     CST.isPIVAir = 1;
+            % 
+            %     % Load First PIV image Air
+            %     filename = [LoadPath 'PIV Air/' expName '_' runName '_PIV Air_' ImageNum_Air1 '.raw'];
+            %     [IM1] = (load_Image_IOCoreView_12MP(filename));
+            %     % Remove Bad Pixels and interpolate
+            %     for iiii = 1:length(BadPix_Air)
+            %         IM1(BadPix_Air(iiii,1),BadPix_Air(iiii,2)) = NaN;
+            %     end
+            %     IM1_A = fillmissing(IM1,'pchip');
+            % 
+            %     % Load Second PIV image Air
+            %     filename = [LoadPath 'PIV Air/' expName '_' runName '_PIV Air_' ImageNum_Air2 '.raw'];
+            %     [IM1] = (load_Image_IOCoreView_12MP(filename));
+            %     % Remove Bad Pixels and interpolate
+            %     for iiii = 1:length(BadPix_Air)
+            %         IM1(BadPix_Air(iiii,1),BadPix_Air(iiii,2)) = NaN;
+            %     end
+            %     IM2_A = fillmissing(IM1,'pchip');
+            % 
+            %     % Camera Angle Correction
+            %     [PIVAir1_CamAngle] = PIVAir_CamAngle_Correction(IM1_A); %Image 1
+            %     [PIVAir2_CamAngle] = PIVAir_CamAngle_Correction(IM2_A); %Image 2
+            % 
+            %     %%% Pre-process
+            %     PIV = PIVAir1_CamAngle;
+            %     [PIV] = Pre_process_PIV_Image_Air(PIV); %pre_proc 1st image
+            %     PIV1_A = PIV;
+            %     PIV = PIVAir2_CamAngle;
+            %     [PIV] = Pre_process_PIV_Image_Air(PIV); %pre_proc 2nd image
+            %     PIV2_A = PIV;
+            % 
+            %     %%% Surface detection
+            % 
+            %     % Lens distortion correction
+            %     [PIVSurfA_Undistorted] = PIVSurfA_LFV_LensDistCorr(PIVSURF_A,cameraParams);
+            %     % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % TO BE DONE!!!!!
+            % 
+            %     % Camera Angle Correction
+            %     [PIVSurfA_CamAngle] = PIVSurfAir_LFV_CamAngle_Correction(PIVSurfA_Undistorted);
+            % 
+            %     % Extract surface
+            %     % [BadFramePIVSurfLFV,XLFV_Surface,LFV_Surface,XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface] = ExtractSurface_PIVSurfAir_LFV_and_correct_surface(PIVSurfA_CamAngle,PIV1_A,idx);
+            % 
+            %     % Mask PIV
+            %     % [Mask_A] = PIVAir_Mask(PIV1_A, PIV_Surface-50);
+            %     %         PIV1_A = PIV1_A(11:3074,41:4066);
+            %     %         PIV2_A = PIV2_A(11:3074,41:4066);
+            %     %         Mask_A = Mask_A(11:3074,41:4066);
+            %     %         %%% NOTE: This last modification after masking must be implemented
+            %     %         %%% in all the subsequent steps, and also in the previous (for
+            %     %         %%% comparison!!)
+            %     %         [XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface] = Modify_after_PIVAir_Mask(XPIV_LFV_Surface,PIV_LFV_Surface,PIV_Surface);
+            % 
+            % end
 
             %% Water
 
@@ -402,19 +402,19 @@ tic
 
             %%%% PIV CALCULATION IN THE AIR!
 
-            if CST.isPIVAir
-                if BadFramePIVSurfLFV == 1
-
-                    disp(['NO PIV AIR. Bad PIVSurfAir - LFV. SKIPPED Pair ' PairNum ' : ']); % Reject images with bad surface detection in the Air
-                    continue
-                else
-
-                    [CompVelAir] =  PIV_FAB7_threshold_correlation_and_phase_CD_Deform_Fabio(PIV1_A, PIV2_A, Mask_A, IntrWndw_A, GrdSpc_A);
-                    figure(1)
-                    imagesc(CompVelAir.delta_x*CST.DX/CST.DT,[0,6])
-                    colorbar
-                end
-            end
+            % if CST.isPIVAir
+            %     if BadFramePIVSurfLFV == 1
+            % 
+            %         disp(['NO PIV AIR. Bad PIVSurfAir - LFV. SKIPPED Pair ' PairNum ' : ']); % Reject images with bad surface detection in the Air
+            %         continue
+            %     else
+            % 
+            %         [CompVelAir] =  PIV_FAB7_threshold_correlation_and_phase_CD_Deform_Fabio(PIV1_A, PIV2_A, Mask_A, IntrWndw_A, GrdSpc_A);
+            %         figure(1)
+            %         imagesc(CompVelAir.delta_x*CST.DX/CST.DT,[0,6])
+            %         colorbar
+            %     end
+            % end
 
             % %%%% PIV CALCULATION IN THE WATER!
             % if CST.isPIVWater
@@ -436,66 +436,66 @@ tic
 
             %% Saving SURFACES
             % %%%% Air
-            PixRes_Air = struct();
-            PIVRes_Air = struct();
-            try
+            % PixRes_Air = struct();
+            % PIVRes_Air = struct();
+            % try
                 FiltLength = 1000;
-                % "Pixel" Resolution
-                PixRes_Air.XLFV_Surface = XLFV_Surface;
-                PixRes_Air.LFV_Surface = LFV_Surface;
-                PixRes_Air.XPIV_LFV_Surface = XPIV_LFV_Surface;
-                PixRes_Air.PIV_LFV_Surface = PIV_LFV_Surface;
-                PixRes_Air.PIV_LFV_Surface_smth = filtfilt(ones(1,FiltLength)/FiltLength, 1, PIV_LFV_Surface);
-                PixRes_Air.PIV_LFV_Surface_smth_phase = angle(hilbert(-PixRes_Air.PIV_LFV_Surface_smth+mean(PixRes_Air.PIV_LFV_Surface_smth,'omitnan')));
-                PixRes_Air.PIV_Surface = PIV_Surface; % Fits perfectly with PIV1_A
-                
-                PixRes_Air.pair_index = pair_index;
-                PixRes_Air.ImageNum_1 = ImageNum_Air1;
-                PixRes_Air.ImageNum_2 = ImageNum_Air2;
-                PixRes_Air.PairNum = PairNum;
-                PixRes_Air.ExpName = ['ExpAW' ExpAW];
-                PixRes_Air.Acc = Acc;
-                PixRes_Air.Wind = Wind;
-                PixRes_Air.Run = runName;
-
-                % "PIV" Resolution
-
-                PIVRes_Air.BadFramePIVSurfLFV = BadFramePIVSurfLFV;
-                PIVRes_Air.xPIV = CompVelAir.xPIV; % The x coordinates of center of IntrWndws
-                PIVRes_Air.zPIV = CompVelAir.zPIV; % The y coordinates of center of IntrWndws
-                PIVRes_Air.GS = CompVelAir.GS; % Final grid spacing
-                PIVRes_Air.PIV_Surface = (PixRes_Air.PIV_Surface(PIVRes_Air.xPIV) )/CompVelAir.GS;%Fits perfectly with imagesc(CompVel.delta_x)
-                PIVRes_Air.pair_index = pair_index;
-                PIVRes_Air.ImageNum_1 = ImageNum_Air1;
-                PIVRes_Air.ImageNum_2 = ImageNum_Air2;
-                PIVRes_Air.PairNum = PairNum;
-                PIVRes_Air.ExpName = ['ExpAW' ExpAW];
-                PIVRes_Air.Acc = Acc;
-                PIVRes_Air.Wind = Wind;
-                PIVRes_Air.Run = runName;
-                PIVRes_Air.PF_Surface = length(PIVRes_Air.zPIV)-PIVRes_Air.PIV_Surface+1; % It is needed for transformations;
-                %it's the surface that would be detected on an upside down PIV image . %Fits perfectly with imagesc(flipud(CompVelAir.delta_x))
-                I = ismember(PixRes_Air.XPIV_LFV_Surface,PIVRes_Air.xPIV);
-                PIVRes_Air.Phase = PixRes_Air.PIV_LFV_Surface_smth_phase(I);
-
-                CST.isSurfAir = 1;
-
-                SavedSurfsAir = struct();
-                SavedSurfsAir.PIVRes_Air = PIVRes_Air;
-                SavedSurfsAir.PixRes_Air = PixRes_Air;
-                SavedSurfsAir.CST = CST;
-
-                %%% Save surface
+            %     % "Pixel" Resolution
+            %     PixRes_Air.XLFV_Surface = XLFV_Surface;
+            %     PixRes_Air.LFV_Surface = LFV_Surface;
+            %     PixRes_Air.XPIV_LFV_Surface = XPIV_LFV_Surface;
+            %     PixRes_Air.PIV_LFV_Surface = PIV_LFV_Surface;
+            %     PixRes_Air.PIV_LFV_Surface_smth = filtfilt(ones(1,FiltLength)/FiltLength, 1, PIV_LFV_Surface);
+            %     PixRes_Air.PIV_LFV_Surface_smth_phase = angle(hilbert(-PixRes_Air.PIV_LFV_Surface_smth+mean(PixRes_Air.PIV_LFV_Surface_smth,'omitnan')));
+            %     PixRes_Air.PIV_Surface = PIV_Surface; % Fits perfectly with PIV1_A
+            % 
+            %     PixRes_Air.pair_index = pair_index;
+            %     PixRes_Air.ImageNum_1 = ImageNum_Air1;
+            %     PixRes_Air.ImageNum_2 = ImageNum_Air2;
+            %     PixRes_Air.PairNum = PairNum;
+            %     PixRes_Air.ExpName = ['ExpAW' ExpAW];
+            %     PixRes_Air.Acc = Acc;
+            %     PixRes_Air.Wind = Wind;
+            %     PixRes_Air.Run = runName;
+            % 
+            %     % "PIV" Resolution
+            % 
+            %     PIVRes_Air.BadFramePIVSurfLFV = BadFramePIVSurfLFV;
+            %     PIVRes_Air.xPIV = CompVelAir.xPIV; % The x coordinates of center of IntrWndws
+            %     PIVRes_Air.zPIV = CompVelAir.zPIV; % The y coordinates of center of IntrWndws
+            %     PIVRes_Air.GS = CompVelAir.GS; % Final grid spacing
+            %     PIVRes_Air.PIV_Surface = (PixRes_Air.PIV_Surface(PIVRes_Air.xPIV) )/CompVelAir.GS;%Fits perfectly with imagesc(CompVel.delta_x)
+            %     PIVRes_Air.pair_index = pair_index;
+            %     PIVRes_Air.ImageNum_1 = ImageNum_Air1;
+            %     PIVRes_Air.ImageNum_2 = ImageNum_Air2;
+            %     PIVRes_Air.PairNum = PairNum;
+            %     PIVRes_Air.ExpName = ['ExpAW' ExpAW];
+            %     PIVRes_Air.Acc = Acc;
+            %     PIVRes_Air.Wind = Wind;
+            %     PIVRes_Air.Run = runName;
+            %     PIVRes_Air.PF_Surface = length(PIVRes_Air.zPIV)-PIVRes_Air.PIV_Surface+1; % It is needed for transformations;
+            %     %it's the surface that would be detected on an upside down PIV image . %Fits perfectly with imagesc(flipud(CompVelAir.delta_x))
+            %     I = ismember(PixRes_Air.XPIV_LFV_Surface,PIVRes_Air.xPIV);
+            %     PIVRes_Air.Phase = PixRes_Air.PIV_LFV_Surface_smth_phase(I);
+            % 
+            %     CST.isSurfAir = 1;
+            % 
+            %     SavedSurfsAir = struct();
+            %     SavedSurfsAir.PIVRes_Air = PIVRes_Air;
+            %     SavedSurfsAir.PixRes_Air = PixRes_Air;
+            %     SavedSurfsAir.CST = CST;
+            % 
+            %     %%% Save surface
                 SurfFileName = [expName '_Scene' runName '_Surfaces_' PairNum];
-                % save([SaveSurfAirPath SurfFileName '.mat'] , 'PIVRes_Air', 'PixRes_Air','CST');
-                save([SaveSurfAirPath SurfFileName '.mat'] , '-fromstruct',SavedSurfsAir);
-
-            catch
-
-                disp(['NO SURFACE AIR AVAILABLE for Pair ' PairNum ' : ']);
-                CST.isSurfAir = 0;
-
-            end
+            %     % save([SaveSurfAirPath SurfFileName '.mat'] , 'PIVRes_Air', 'PixRes_Air','CST');
+            %     save([SaveSurfAirPath SurfFileName '.mat'] , '-fromstruct',SavedSurfsAir);
+            % 
+            % catch
+            % 
+            %     disp(['NO SURFACE AIR AVAILABLE for Pair ' PairNum ' : ']);
+            %     CST.isSurfAir = 0;
+            % 
+            % end
 
             %%%% Water
             PixRes_Water1 = struct();
@@ -510,19 +510,20 @@ tic
             try
                 %%% Surface 1
                 % "Pixel Resolution"
+                
                 PixRes_Water1.BadFramePIVSurfW1 = BadFramePIVSurfW1;
                 PixRes_Water1.XPIVW_PIVSurfW1_Surface = XPIVW_PIVSurfW1_Surface; % PIVWater x-axis in PIV Water coordinates
                 PixRes_Water1.PIVW_PIVSurfW1_Surface = PIVW_PIVSurfW1_Surface; % PIVWater surface in PIV Water coordinates
                 PixRes_Water1.PIVW_PIVSurfW1_Surface_smth = filtfilt(ones(1,round(FiltLength/3.333))/(round(FiltLength/3.333)), 1, PIVW_PIVSurfW1_Surface); % smoothed version to calculate gradients
                 PixRes_Water1.PIVW1_Surface = PIVW1_Surface; % Fits perfectly with imagesc(PIV1_W)
                 
-                [XPIVW_LFV_Surface,PIVW_LFV_Surface_smth] = transform_phase_from_PIVAir_to_PIVWater(XPIV_LFV_Surface,PixRes_Air.PIV_LFV_Surface_smth); %%% Find phase from LFV in PIVWater coordinates
+                % [XPIVW_LFV_Surface,PIVW_LFV_Surface_smth] = transform_phase_from_PIVAir_to_PIVWater(XPIV_LFV_Surface,PixRes_Air.PIV_LFV_Surface_smth); %%% Find phase from LFV in PIVWater coordinates
                 % This is needed to calculate the phase in water space
                 % coordinates with long components from LFV
                 
-                PixRes_Water1.XLFV_Water = XPIVW_LFV_Surface;
-                PixRes_Water1.LFV_Water_smth = PIVW_LFV_Surface_smth;
-                PixRes_Water1.LFV_Water_smth_phase = angle(hilbert(-PixRes_Water1.LFV_Water_smth+mean(PixRes_Water1.LFV_Water_smth,'omitnan')));
+                % PixRes_Water1.XLFV_Water = XPIVW_LFV_Surface;
+                % PixRes_Water1.LFV_Water_smth = PIVW_LFV_Surface_smth;
+                % PixRes_Water1.LFV_Water_smth_phase = angle(hilbert(-PixRes_Water1.LFV_Water_smth+mean(PixRes_Water1.LFV_Water_smth,'omitnan')));
                 
                 PixRes_Water1.pair_index = pair_index;
                 PixRes_Water1.ImageNum_1 = ImageNum_Water1;
@@ -574,7 +575,7 @@ tic
                 % SavedSurfsWater.PIVRes_Water1 = PIVRes_Water1
 
 
-                save([SaveSurfWaterPath SurfFileName '.mat'] , '-fromstruct',SavedSurfsWater);
+                save([SaveSurfWaterPath SurfFileName '.mat'] , '-fromstruct', SavedSurfsWater);
 
 
             catch
@@ -585,25 +586,25 @@ tic
             end
 
             %% SAVING raw PIV
-            %%%% Air
-            try
-                % CompVelAir.Surface = (PixRes_Air.PIV_Surface(PIVRes_Air.xPIV) )/CompVelAir.GS;%Fits perfectly with imagesc(CompVelAir.delta_x)
-                CompVelAir.pair_index = pair_index;
-                CompVelAir.ImageNum_1 = ImageNum_Air1;
-                CompVelAir.ImageNum_2 = ImageNum_Air2;
-                CompVelAir.PairNum = PairNum;
-                CompVelAir.ExpName = ['ExpAW' ExpAW];
-                CompVelAir.Acc = Acc;
-                CompVelAir.Wind = Wind;
-                CompVelAir.Run = runName;
-                CompVelAir.CST = CST;
-                % CompVelAir.SurfacePhase = PIVRes_Air.Phase;
-                PIVAirFileName = [ expName '_' runName '_PIV Air_Velocity_' PairNum];
-                % save([SavePIVAirPath PIVAirFileName '.mat'], 'CompVelAir','CST');
-                save([SavePIVAirPath PIVAirFileName '.mat'], '-fromstruct',CompVelAir);
-            catch
-
-            end
+            % %%%% Air
+            % try
+            %     % CompVelAir.Surface = (PixRes_Air.PIV_Surface(PIVRes_Air.xPIV) )/CompVelAir.GS;%Fits perfectly with imagesc(CompVelAir.delta_x)
+            %     CompVelAir.pair_index = pair_index;
+            %     CompVelAir.ImageNum_1 = ImageNum_Air1;
+            %     CompVelAir.ImageNum_2 = ImageNum_Air2;
+            %     CompVelAir.PairNum = PairNum;
+            %     CompVelAir.ExpName = ['ExpAW' ExpAW];
+            %     CompVelAir.Acc = Acc;
+            %     CompVelAir.Wind = Wind;
+            %     CompVelAir.Run = runName;
+            %     CompVelAir.CST = CST;
+            %     % CompVelAir.SurfacePhase = PIVRes_Air.Phase;
+            %     PIVAirFileName = [ expName '_' runName '_PIV Air_Velocity_' PairNum];
+            %     % save([SavePIVAirPath PIVAirFileName '.mat'], 'CompVelAir','CST');
+            %     save([SavePIVAirPath PIVAirFileName '.mat'], '-fromstruct',CompVelAir);
+            % catch
+            % 
+            % end
 
             % %%%% Water
             % try
@@ -625,17 +626,17 @@ tic
 
             %% COORDINATE TRANSFORMATION
 
-            %% Air
-            try
-
-                [transfo_Air] = GenerateTransfo_Air(PixRes_Air, PIVRes_Air, CST);
-                transfo_Air.CST = CST;
-                % Save transfo_Air
-                TransfoFileName = [expName '_Scene' runName '_transfo_' PairNum];
-                save([SaveTransfoAirPath TransfoFileName '.mat'] , '-fromstruct',transfo_Air);
-            catch
-
-            end
+            % %% Air
+            % try
+            % 
+            %     [transfo_Air] = GenerateTransfo_Air(PixRes_Air, PIVRes_Air, CST);
+            %     transfo_Air.CST = CST;
+            %     % Save transfo_Air
+            %     TransfoFileName = [expName '_Scene' runName '_transfo_' PairNum];
+            %     save([SaveTransfoAirPath TransfoFileName '.mat'] , '-fromstruct',transfo_Air);
+            % catch
+            % 
+            % end
 
             % %%% Water
             % try
@@ -648,42 +649,42 @@ tic
             % 
             % end
 
-            %% Smoothing PIV
-
-            %%% Air
-            try
-                ThrA = 0.4;
-                BadSubpixA = 6;
-                [Cartesian_Air] = RemoveOutliers_fabio(CompVelAir,ThrA,BadSubpixA);
-                Cartesian_Air.Surface = PIVRes_Air.PIV_Surface;
-                Cartesian_Air.pair_index = pair_index;
-                Cartesian_Air.ImageNum_1 = ImageNum_Water1;
-                Cartesian_Air.ImageNum_2 = ImageNum_Water2;
-                Cartesian_Air.PairNum = PairNum;
-                Cartesian_Air.ExpName = ['ExpAW' ExpAW];
-                Cartesian_Air.Acc = Acc;
-                Cartesian_Air.Wind = Wind;
-                Cartesian_Air.Run = runName;
-                % Cartesian_Air.Phase = CompVelAir.SurfacePhase;
-                Cartesian_Air.xPIV = CompVelAir.xPIV; % The x coordinates of center of IntrWndws
-                Cartesian_Air.zPIV = CompVelAir.zPIV; % The y coordinates of center of IntrWndws
-                Cartesian_Air.GS = CompVelAir.GS;
-                Cartesian_Air.IW = CompVelAir.IW;
-                Cartesian_Air.Slope = transfo_Air.AK_smth(1,:);
-                
-                Cartesian_Air.CST = CST;
-
-                PIVRes_Air.Slope =Cartesian_Air.Slope;
-                PIVRes_Air.SlopeH = TransformPhaseVector_decay_hor(Cartesian_Air.Slope, PIVRes_Air, imag(transfo_Air.SU(1,:)));
-                PIVRes_Air.PhaseH = TransformPhaseVector_decay_hor(PIVRes_Air.Phase, PIVRes_Air, imag(transfo_Air.SU(1,:)));
-
-                % Save smoothed PIV
-                CartFileName = [ expName '_' runName '_CartesianAir_' PairNum];
-                % save([SaveCartAirPath CartFileName '.mat'], 'Cartesian_Air', 'PixRes_Air', 'PIVRes_Air', 'CST');
-                save([SaveCartAirPath CartFileName '.mat'], '-fromstruct', Cartesian_Air);
-            catch
-
-            end
+            % %% Smoothing PIV
+            % 
+            % %%% Air
+            % try
+            %     ThrA = 0.4;
+            %     BadSubpixA = 6;
+            %     [Cartesian_Air] = RemoveOutliers_fabio(CompVelAir,ThrA,BadSubpixA);
+            %     Cartesian_Air.Surface = PIVRes_Air.PIV_Surface;
+            %     Cartesian_Air.pair_index = pair_index;
+            %     Cartesian_Air.ImageNum_1 = ImageNum_Water1;
+            %     Cartesian_Air.ImageNum_2 = ImageNum_Water2;
+            %     Cartesian_Air.PairNum = PairNum;
+            %     Cartesian_Air.ExpName = ['ExpAW' ExpAW];
+            %     Cartesian_Air.Acc = Acc;
+            %     Cartesian_Air.Wind = Wind;
+            %     Cartesian_Air.Run = runName;
+            %     % Cartesian_Air.Phase = CompVelAir.SurfacePhase;
+            %     Cartesian_Air.xPIV = CompVelAir.xPIV; % The x coordinates of center of IntrWndws
+            %     Cartesian_Air.zPIV = CompVelAir.zPIV; % The y coordinates of center of IntrWndws
+            %     Cartesian_Air.GS = CompVelAir.GS;
+            %     Cartesian_Air.IW = CompVelAir.IW;
+            %     Cartesian_Air.Slope = transfo_Air.AK_smth(1,:);
+            % 
+            %     Cartesian_Air.CST = CST;
+            % 
+            %     PIVRes_Air.Slope =Cartesian_Air.Slope;
+            %     PIVRes_Air.SlopeH = TransformPhaseVector_decay_hor(Cartesian_Air.Slope, PIVRes_Air, imag(transfo_Air.SU(1,:)));
+            %     PIVRes_Air.PhaseH = TransformPhaseVector_decay_hor(PIVRes_Air.Phase, PIVRes_Air, imag(transfo_Air.SU(1,:)));
+            % 
+            %     % Save smoothed PIV
+            %     CartFileName = [ expName '_' runName '_CartesianAir_' PairNum];
+            %     % save([SaveCartAirPath CartFileName '.mat'], 'Cartesian_Air', 'PixRes_Air', 'PIVRes_Air', 'CST');
+            %     save([SaveCartAirPath CartFileName '.mat'], '-fromstruct', Cartesian_Air);
+            % catch
+            % 
+            % end
             %%%
 
             % %%%% Water
