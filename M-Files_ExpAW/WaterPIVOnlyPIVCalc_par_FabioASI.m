@@ -168,7 +168,7 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
         %% Processing frames
         image_index = FI+1:2:LI;
 
-        for idx = 400%330%866/2%720/2%numel(image_index) % Main Loop
+        for idx = 415%330%866/2%720/2%numel(image_index) % Main Loop
 
             % Indexes for images
             pair_index = (image_index(idx)+1)/2;
