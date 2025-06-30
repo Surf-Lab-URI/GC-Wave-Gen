@@ -499,7 +499,7 @@ sbt1 = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'Color','red','FontSize',16,
 
 
 %% Compute surface height and slope variance
-% clear
+clear
 
 pps = 14.5; % pairs per second
 
@@ -619,6 +619,16 @@ hold on
 xlabel('Frame Number')
 ylabel('Spacial variance of surface slope at each time (m/m)^2')
 set(gca,'FontSize',24)
+%% Fit growth rate to initial wavelet growth stage
+ir = [0,0];
+[~,i] = min(abs(t-27));
+ir(1) = i;
+[~,i] = min(abs(t-29.58));
+ir(2) = i;
+ir
+eta_var_fit = fit(t(ir(1):ir(2)),eta_var(ir(1):ir(2)),'exp1')
+figure
+plot(eta_var_fit,t(ir(1):ir(2)),eta_var(ir(1):ir(2)))
 
 %% Generate Video File from frames save in previous section
 vw = VideoWriter('ExpAW5_acc0.22_W5V_Run2_750to1350_ED.avi', 'Uncompressed AVI');
