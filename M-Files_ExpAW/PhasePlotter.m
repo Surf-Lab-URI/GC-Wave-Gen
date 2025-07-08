@@ -121,7 +121,8 @@ ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
 set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
 ylim([0,3e-7])
-
+s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
+title(s,'Interpreter','latex')
 
 
 ax2 = subplot(3,1,2);
@@ -156,11 +157,15 @@ linkaxes([ax1,ax2,ax3],'x')
 xlim([20,35])
 ylim([0,4])
 
+
 %% Fit growth rate to initial wavelet growth stage
+tfit_i = 27;
+tfit_f = 29.58;
+
 ir = [0,0];
-[~,i] = min(abs(t-27));
+[~,i] = min(abs(t-tfit_i));
 ir(1) = i;
-[~,i] = min(abs(t-29.58));
+[~,i] = min(abs(t-tfit_f)); 
 ir(2) = i;
 ir
 eta_var_fit = fit(t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'exp1')
@@ -170,13 +175,64 @@ eta_var_fit = fit(t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'exp1')
 figure(3)
 hold on
 subplot(3,1,1)
-p1 = plot(t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'.k', 'MarkerSize',15,'DisplayName','Growth Phase Data')
+s = sprintf('Points %.2f s to %.2f s',tfit_i,tfit_f);
+p1 = plot(t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'.k', 'MarkerSize',15,'DisplayName',s)
 
 fit_line_t = (t(ir(1)):0.01:t(ir(2)))';
 fit_line = eta_var_fit.a.*exp(fit_line_t.*eta_var_fit.b);
-s = sprintf('Exponential Fit, Growth Rate %.2f 1/s',eta_var_fit.b);
+s = sprintf('Fit %.2f s to %.2f s, Growth Rate %.2f 1/s',tfit_i,tfit_f,eta_var_fit.b);
 p2 = plot(fit_line_t, fit_line, '-r', 'LineWidth',3,'DisplayName',s)
 legend([p1,p2],'Interpreter','latex')
+
+%% Plot Wavenumber Spectrum
+nX = size(eta,2);
+ppm = 1/mpp;
+
+kspec_mag = abs(fft(eta-mean(eta,2),nX,2));
+
+%Calculate contribution to total variance by each wavenumber, normalized by wavenumber bandwidth
+%Sum of kspec_mag_n*(k step size) = kspec_mag_n*(2*pi/nX/mpp) is equal to
+%the tocal variance
+kspec_vareta_n = kspec_mag.^2/(nX-1)*mpp/(2*pi); 
+
+figure(13)
+hold off
+imagesc(kspec_mag.^2/(nX-1)*mpp/(2*pi),'XData',2*pi*(ppm/nX*(0:nX-1)),'YData',t,[0,1e-9])
+hold on
+set(gca,'FontSize',24,'TickLabelInterpreter','latex')
+xlim([0,500])
+ylim([27,30])
+xlabel('k ($\mathrm{m^{-1}}$)','Interpreter','latex')
+ylabel('time (s)','Interpreter','latex')
+colormap gray
+c = colorbar;
+c.Label.Interpreter = 'latex';
+c.Label.String = "Wavenumber contribution to Var[$\eta$] ($\mathrm{m^3}$)";
+c.Label.FontSize = 24;
+c.TickLabelInterpreter = 'latex';
+s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
+title(s,'Interpreter','latex')
+%% Plot initial growth rate spectrum
+
+growthrates = zeros(1,nX);
+parfor i = 1:nX
+    sfit = fit(t(ir(1):ir(2))',kspec_vareta_n(ir(1):ir(2),i),'exp1');
+    growthrates(i) = sfit.b;
+end
+
+figure(14)
+% hold off
+s = sprintf("%.2f s to %.2f s",tfit_i,tfit_f);
+plot(2*pi*(ppm/nX*(0:nX-1)),growthrates,'LineWidth',4,'DisplayName',s)
+hold on
+set(gca,'FontSize',24,'TickLabelInterpreter','latex')
+xlim([0,500])
+xlabel('k ($\mathrm{m^{-1}}$)','Interpreter','latex')
+ylabel('growth rate of wavenumber contribution to Var[$\eta$] (1/s)','Interpreter','latex')
+
+s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
+title(s,'Interpreter','latex')
+legend('Interpreter','latex')
 %% Plot hovemollerish thing
 P_threshold = 10;
 
