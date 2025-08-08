@@ -14,6 +14,8 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
     Acc = ExpDir(i).name(11:14);
     Wind = ExpDir(i).name(17);
     switch Wind
+        case '4'
+            DeltaT_A = 200d-6;
         case '5'
             DeltaT_A = 200d-6;
         case '6'
@@ -168,7 +170,7 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
         %% Processing frames
         image_index = FI+1:2:LI;
 
-        for idx = 415%330%866/2%720/2%numel(image_index) % Main Loop
+        for idx = 433%330%866/2%720/2%numel(image_index) % Main Loop
 
             % Indexes for images
             pair_index = (image_index(idx)+1)/2;
@@ -301,7 +303,7 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
             Check_W2 = mean(imbinarize(PIVSURF_W2,30));
             Check_W2(1:300) = NaN;
 
-            if sum(Check_W1<0.05)>10 || sum(Check_W2<0.05)>10
+            if false && (sum(Check_W1<0.05)>10 || sum(Check_W2<0.05)>10)
 
                 CST.isPIVWater = 0;
                 disp(['WINDSHIELD WIPER in WATER Surface!'])
@@ -416,12 +418,105 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
                     continue
 
                 else
+                    % [CompVelWater] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(PIVWater1_CamAngle, PIVWater1_CamAngle, Mask1_W, Mask2_W, Mask1_W, IntrWndw_W, GrdSpc_W, Uorb_W1,Vorb_W1);
 
-                    [CompVelWater] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(PIV1_W, PIV2_W, Mask1_W, Mask2_W, Mask1_W, IntrWndw_W, GrdSpc_W, Uorb_W1,Vorb_W1);
+                    [CompVelWater] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(PIV1_W, PIV2_W, Mask1_W, Mask2_W, Mask1_W, IntrWndw_W, GrdSpc_W, Uorb_W1*0,Vorb_W1*0);
 
+                
+                    figure(20)
+                    xrange = [3000,3500];
+                    plot(mean(CompVelWater.delta_x(:,xrange(1)/4:xrange(2)/4)*CST.DX_W/CST.DT_W,2,'omitmissing'),(1:size(CompVelWater.delta_x,1))*-4*CST.DX_W,'DisplayName','automated PIV','LineWidth',3)
+                    hold on
+                    %manual results
+                    % x = 2100 to 2600 PairNum 0432 exp5 run 2
+                    u_man = [1.69e-02, 0.02624490909, 0.02624490909, 0.02624490909, 0.1181020909, 0.1106035455, 0.2005860909, 0.1612187273, 0.02811954545, 0.007498545455];
+                    z_man = [-3.50E-02,-3.39E-02 -3.41E-02 -3.39E-02 -3.09E-02 -3.10E-02 -2.84E-02 -3.02E-02 -3.33E-02 -3.72E-02];
+                    
+                    % x = 3000 to 3500 PairNum 0259 exp5 run 2
+                    % u_man = [0.0	0	0.01312245455	0.01312245455	0.01312245455	0.009373181818	0.007498545455	0.009373181818	0.01124781818	0.01312245455];
+                    % z_man = [-4.40E-02	-3.57E-02	-3.39E-02	-3.19E-02	-3.10E-02	-3.01E-02	-2.94E-02	-2.88E-02	-2.80E-02	-3.23E-02];
+
+                    % x = 3000 to 3500 PairNum 1499 exp5 run 2
+                    % u_man = [9.37E-03	0.01874636364	0.005623909091	0.005623909091	0.007498545455	0.005623909091	0.01124781818	0.009373181818	0.003749272727	0.005623909091];
+                    % z_man = [-1.20E-01	-1.01E-01	-8.95E-02	-8.52E-02	-8.11E-02	-7.70E-02	-6.32E-02	-5.80E-02	-5.50E-02	-5.22E-02];
+
+                    % x = 1700 to 2200 PairNum 0432 exp5 run 2
+                    % u_man = [1.31E-02 5.62e-03 5.44E-02 1.78E-01 1.93E-01 2.12E-01 2.01E-01 9.37E-03 2.81E-02];
+                    % z_man = [-3.59E-02 -3.75E-02 -3.21E-02 -2.99E-02 -3.07E-02 -2.86E-02 -3.08E-02 -3.47E-02 -3.36E-02];
+
+                    % x = 3000 to 3500 PairNum 0399 exp5 run 2
+                    % u_man = [7.50E-03 0.01312245455 0.02437027273 0.1312245455 0.1330991818 0.1349738182 0.1199767273 0.1330991818 0.1349738182 0.04874054545 0.1330991818];
+                    % z_man = [-0.035736193 -0.03464328 -0.032766769 -0.030147902 -0.029405546 -0.028539464 -0.029591135 -0.028786916 -0.029343683 -0.030271628 -0.029343683];
+                    plot(u_man,z_man,'.r','DisplayName','manual','MarkerSize',25)
+                    legend('Location', 'southeast','Interpreter','latex')
+                    s = sprintf('%s %s PairNum %s, x = %d to %d pixels (%.2f to %.2f cm)',expName(1:6),runName,PairNum,xrange(1), xrange(2), xrange(1)*CST.DX_W*1e2, xrange(2)*CST.DX_W*1e2);
+                    title(s,'Interpreter','latex')
+                    set(gca,'FontSize',20,'TickLabelInterpreter','latex');
+                    xlabel('u (m/s)','Interpreter','latex');
+                    ylabel('z (m)','Interpreter','latex');
+                    ylim([-0.05,-0.027])
+                    % xlim([0,0.22])
+                    
                 end
             end
+%% Generate .tif files to feed ML PIV
+figure
+imagesc(PIV1_W)
+colormap gray
+hold on
+axis equal
+ylim([500,800])
+%%
+ysurf = 665; %677 for 0399, 665 for 0432, %665 for 0259, %800 for 1499
+xl = xrange;
+shiftmps = 0;
+shift = uint16(round(shiftmps*CST.DT_W/CST.DX_W));
+% imagesc(uint8(PIV1_W*0.84),[0,255]);
+% imagesc(uint8(PIV2_W*0.64),[0,255]);
+% set(gca,'XLim',[3000,3500],'YLim',[600,1100]
 
+% imwrite(uint8(PIV2_W(ysurf:2700,(xl(1)+shift):(xl(2)+shift))*0.64),[ImageNum_Water2, '.tif'])
+% imwrite(uint8(PIV1_W(ysurf:2700,xl(1):xl(2))*0.84),[ImageNum_Water1, '.tif'])
+
+imwrite(uint8(PIV2_W(ysurf:2000,(xl(1)+shift):(xl(2)+shift))*0.64.*Mask2_W(ysurf:2000,xl(1):xl(2))),[ImageNum_Water2, '.tif'])
+imwrite(uint8(PIV1_W(ysurf:2000,xl(1):xl(2))*0.84.*Mask1_W(ysurf:2000,xl(1):xl(2))),[ImageNum_Water1, '.tif'])
+%%
+outfname = ['/home/surflab/GitRepos/piv_liteflownet-pytorch/images/demo/DemoOutput/PIV-LiteFlowNet-en/-0_2/flow/', ImageNum_Water1, '_out.flo']; %For Pairnum 0399
+[u, v] = read_flo_file(outfname);
+figure(20)
+hold on
+s = sprintf('CNN (piv-liteflownet-pytorch) with %.3f m/s shift',shiftmps);
+plot(mean((u+double(shift))*CST.DX_W/CST.DT_W,2,'omitmissing'),(ysurf:(ysurf+size(u,1)-1))'*-1*CST.DX_W,'DisplayName',s,'LineWidth',3)
+%% Plot manual and PIV velocity profiles on top of each other for either side of a trough
+% figure
+xrange = xl;
+sauto = sprintf('automated PIV, right of trough (x = %d to %d pixels (%.2f to %.2f cm)',xrange(1), xrange(2), xrange(1)*CST.DX_W*1e2, xrange(2)*CST.DX_W*1e2);
+plot(mean(CompVelWater.delta_x(:,xrange(1)/4:xrange(2)/4)*CST.DX_W/CST.DT_W,2,'omitmissing'),(1:size(CompVelWater.delta_x,1))*-4*CST.DX_W,'-r','DisplayName',sauto,'LineWidth',3)
+hold on
+%manual results
+% x = 2100 to 2600 PairNum 0432 exp5 run 2
+% u_man = [1.69e-02, 0.02624490909, 0.02624490909, 0.02624490909, 0.1181020909, 0.1106035455, 0.2005860909, 0.1612187273, 0.02811954545, 0.007498545455];
+% z_man = [-3.50E-02,-3.39E-02 -3.41E-02 -3.39E-02 -3.09E-02 -3.10E-02 -2.84E-02 -3.02E-02 -3.33E-02 -3.72E-02];
+
+% x = 1700 to 2200 PairNum 0432 exp5 run 2
+% u_man = [1.31E-02 5.62e-03 5.44E-02 1.78E-01 1.93E-01 2.12E-01 2.01E-01 9.37E-03 2.81E-02];
+% z_man = [-3.59E-02 -3.75E-02 -3.21E-02 -2.99E-02 -3.07E-02 -2.86E-02 -3.08E-02 -3.47E-02 -3.36E-02];
+
+
+% x = 3000 to 3500 PairNum 0399 exp5 run 2
+u_man = [7.50E-03 0.01312245455 0.02437027273 0.1312245455 0.1330991818 0.1349738182 0.1199767273 0.1330991818 0.1349738182 0.04874054545 0.1330991818];
+z_man = [-0.035736193 -0.03464328 -0.032766769 -0.030147902 -0.029405546 -0.028539464 -0.029591135 -0.028786916 -0.029343683 -0.030271628 -0.029343683];
+
+sman = sprintf('manual, right of trough (x = %d to %d pixels (%.2f to %.2f cm))',xrange(1), xrange(2), xrange(1)*CST.DX_W*1e2, xrange(2)*CST.DX_W*1e2);
+plot(u_man,z_man,'.r','DisplayName',sman,'MarkerSize',25)
+legend('Location', 'southeast','Interpreter','latex')
+s = sprintf('%s %s PairNum %s',expName(1:6),runName,PairNum);
+title(s,'Interpreter','latex')
+set(gca,'FontSize',20,'TickLabelInterpreter','latex');
+xlabel('u (m/s)','Interpreter','latex');
+ylabel('z (m)','Interpreter','latex');
+ylim([-0.05,-0.0265])
+xlim([0,0.22])
             %% Combo PIV - Air and Water
             %%% Put together PIV Air and PIV Water
             %%% I will conserve this part but will do the calculation in a
