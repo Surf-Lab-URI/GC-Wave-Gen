@@ -4,14 +4,14 @@ clc
 close all
 
 % Define Path
-DataPath = '/media/surflab/Working24/ExpAW/ExpAW5_acc0.22_W5V/ExpAW5_acc0.22_W5V_Run2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
+DataPath = '/media/surflab/Working24/ExpAW/ExpAW4_acc0.16_W5V/ExpAW4_acc0.16_W5V_Run2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
 LoadPath = [DataPath 'RAW/'];
 RawDataPath = [DataPath 'RAW/'];
 ResultsPath = [DataPath 'RESULTS_Andy/'];
 
 PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
 %%
-frames = 0:1:2000;
+frames = 0:1:1500;
 nF = length(frames);
 fXs = zeros(nF, 3639);
 fYs = zeros(nF, 3639);
@@ -36,7 +36,6 @@ DeltaT = nF/2*spp;
 % image_index = FI+1:LI; %1, 3, 5,... Set of indices to loop through. Images are processed in pairs, hence the increment of 2
 
 %%
-CompImg = NaN(ceil(DeltaT*dydt),4176);
 framesCtr = 1;
 tic
 parfor framesCtr = 1:length(frames)
@@ -58,19 +57,23 @@ parfor framesCtr = 1:length(frames)
     
 
 
-    imagesc(PIVSurfW1_CamAngle, [0,70])
-    hold on
-    set(gca,'DataAspectRatio',[1 1 1])
-    ylim([1900,2200])
-    plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, 'r')
-    pause(0.1)
+    % imagesc(PIVSurfW1_CamAngle, [0,70])
+    % hold on
+    % set(gca,'DataAspectRatio',[1 1 1])
+    % ylim([1900,2200])
+    % plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, 'r')
+    % pause(0.1)
     
     fXs(framesCtr,:) = XPIVSurfW1_Surface;
     fYs(framesCtr,:) = PIVSurfW1_Surface;
 end
 toc
-
+save('temp.mat','-v7.3')
+clear
+load('temp.mat')
+%%
 tic
+CompImg = NaN(ceil(DeltaT*dydt),4176);
 for framesCtr = 1:length(frames)
     idx = frames(framesCtr);
 
@@ -120,7 +123,7 @@ xlabel('Time (s)','Interpreter','latex')
 ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
 set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
-ylim([0,3e-7])
+ylim([0,2.5e-7])
 s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
 title(s,'Interpreter','latex')
 
@@ -132,7 +135,7 @@ xlabel('Time (s)','Interpreter','latex')
 ylabel('$\mathrm{Var}[\eta_x]$','Interpreter','latex')
 set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
-xlim([20,35])
+xlim([26,38])
 ylim([0,0.05])
 
 %Calculate Surface Area
@@ -154,13 +157,18 @@ ylabel('$\mathrm{Surface\ Area\ Increase\ (\%)}$','Interpreter','latex')
 set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
 linkaxes([ax1,ax2,ax3],'x')
-xlim([20,35])
+xlim([24,38])
 ylim([0,4])
 
 
 %% Fit growth rate to initial wavelet growth stage
-tfit_i = 27;
-tfit_f = 29.58;
+%For ExpAW5R2
+% tfit_i = 27;
+% tfit_f = 29.58;
+
+%For ExpAW4R2
+tfit_i = 32.5;
+tfit_f = 35.5;
 
 ir = [0,0];
 [~,i] = min(abs(t-tfit_i));
@@ -201,7 +209,7 @@ imagesc(kspec_mag.^2/(nX-1)*mpp/(2*pi),'XData',2*pi*(ppm/nX*(0:nX-1)),'YData',t,
 hold on
 set(gca,'FontSize',24,'TickLabelInterpreter','latex')
 xlim([0,500])
-ylim([27,30])
+ylim([32,36])
 xlabel('k ($\mathrm{m^{-1}}$)','Interpreter','latex')
 ylabel('time (s)','Interpreter','latex')
 colormap gray
@@ -257,7 +265,7 @@ set(gca, 'xtick', 0:0.02:x(end));
 set(gca,'FontSize',24)
 colormap gray
 
-ylim([29,30.03]);
+ylim([34,35]);
 yl = ylim;
 %s = DataPath(end-23:end-1) + " " + frames(1) + " to " + frames(end);
 il = [0,0];
