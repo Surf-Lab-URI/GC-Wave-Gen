@@ -4,7 +4,8 @@ clc
 close all
 
 % Define Path
-DataPath = '/media/surflab/Working24/ExpAW/ExpAW4_acc0.16_W5V/ExpAW4_acc0.16_W5V_Run2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
+%DataPath = '/media/surflab/Working24/ExpAW/ExpAW4_acc0.16_W5V/ExpAW4_acc0.16_W5V_Run2/'; %[ROOTPath 'ExpPilot' expName '/' 'ExpPilot' expName '_Scene' sceneName '/' ];
+DataPath = '/media/surflab/Working24/ExpAW/ExpAW5_acc0.22_W5V/ExpAW5_acc0.22_W5V_Run2/';
 LoadPath = [DataPath 'RAW/'];
 RawDataPath = [DataPath 'RAW/'];
 ResultsPath = [DataPath 'RESULTS_Andy/'];
@@ -115,8 +116,9 @@ eta_x = diff(eta/mpp,1,2);
 
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
-figure(3)
-ax1 = subplot(3,1,1);
+figure(4)
+ax1_1 = subplot(3,1,1);
+yyaxis left
 plot(t,eta_var,'LineWidth',4)
 hold on
 xlabel('Time (s)','Interpreter','latex')
@@ -126,9 +128,10 @@ set(gca,'TickLabelInterpreter','latex')
 ylim([0,2.5e-7])
 s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
 title(s,'Interpreter','latex')
+legend
 
-
-ax2 = subplot(3,1,2);
+% ax2 = subplot(3,1,2);
+yyaxis right
 plot(t,eta_x_var,'LineWidth',4)
 hold on
 xlabel('Time (s)','Interpreter','latex')
@@ -137,6 +140,7 @@ set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
 xlim([26,38])
 ylim([0,0.05])
+% legend
 
 %Calculate Surface Area
 A_surf = zeros(1,length(t));
@@ -147,7 +151,7 @@ for n = 1:length(t)
 end
 
 
-ax3 = subplot(3,1,3);
+ax3_1 = subplot(3,1,3);
 l_interface = x_eta(1,end) - x_eta(1,1);
 plot(t,(A_surf - l_interface)/l_interface*100,'LineWidth',4)
 % plot(t,A_surf,'LineWidth',4)
@@ -156,9 +160,160 @@ xlabel('Time (s)','Interpreter','latex')
 ylabel('$\mathrm{Surface\ Area\ Increase\ (\%)}$','Interpreter','latex')
 set(gca,'FontSize',24)
 set(gca,'TickLabelInterpreter','latex')
-linkaxes([ax1,ax2,ax3],'x')
+linkaxes([ax1_1,ax1_2,ax3_1],'x')
 xlim([24,38])
 ylim([0,4])
+%% Setup for plotting eta_var, eta_x_var, windspeed, surface speed
+trange = [26, 38];
+PairNumRange = trange/spp;
+t = zeros(1,nF);
+t(1) = floor(frames(1)/2)*spp + mod(frames(1),2)*dt_pair;
+
+for i = 2:nF
+    if mod(frames(i),2)==1
+        t(i) = t(i-1)+dt_pair;
+    else
+        t(i) = t(i-1)+spp-dt_pair;
+    end
+end
+PairNumCont = t/spp;
+
+eta = (fYs-mean(fYs(1:20,:),'all'))*mpp;
+x_eta = fXs*mpp;
+eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
+
+eta_x = diff(eta/mpp,1,2);
+
+eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
+
+UAirDir = '/media/surflab/Working24/ExpAW/ExpAW5_acc0.22_W5V/ExpAW5_acc0.22_W5V_Run2/RESULTS_andy/Air/CALCULATED_FIELDS/Cartesian Fields/Velocity/';
+numPairs = floor(t(1)/spp):floor(t(end)/spp);
+u_mean = NaN(1,length(numPairs));
+for n = 1:length(numPairs)
+    numPair = numPairs(n);
+    try
+        fname = sprintf('ExpAW5_acc0.22_W5V_Run2_CartesianAir_%04d.mat',numPair);
+        load([UAirDir,fname],'CST','u','Mask')
+        u_mean(n) = mean(u.*Mask*CST.DX/CST.DT,'all','omitmissing');
+    catch
+        disp('Missing Pair')
+    end
+end
+
+%% Plot eta_var, eta_x_var, windspeed, surface speed
+
+% Tile 1, eta_var
+figure(3)
+tlay = tiledlayout(3,1);
+
+ax1_1 = axes(tlay);
+ax1_1.Layout.Tile = 1;
+ax1_1.XAxisLocation = 'bottom';
+
+p1 = plot(ax1_1,t,eta_var,'LineWidth',4)
+hold on
+% xlabel(ax1_1,'Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
+set(ax1_1,'FontSize',24)
+set(ax1_1,'TickLabelInterpreter','latex')
+set(ax1_1, 'YLim',[0,2.5e-7],'XLim',trange)
+ax1_1.Box = 'off';
+s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
+title(s,'Interpreter','latex')
+hold off
+
+% Tile 1, eta_x_var
+ax1_2 = axes(tlay);
+hold on
+ax1_2.Color = 'none';
+ax1_2.Box = 'off';
+ax1_2.Layout.Tile = 1;
+ax1_2.YAxisLocation = 'right';
+p2 = plot(ax1_2,t,eta_x_var,'LineWidth',4)
+set(ax1_2,'FontSize',24)
+tickint = 10;
+xticks(ax1_2,t(1:tickint:end))
+xticklabels(ax1_2,PairNumCont(1:tickint:end))
+ylabel(ax1_2,'$\mathrm{Var}[\eta_x]$','Interpreter','latex')
+ax1_2.XAxisLocation = 'top';
+ax1_2.XAxis.FontSize = 8;
+ax1_2.XAxis.Color = [0.5,0.5,0.5];
+set(ax1_2,'TickLabelInterpreter','latex')
+set(ax1_2, 'YLim',[0,0.05],'XLim',trange)
+tempyl = ylim
+xlabel(ax1_2,'PairNum','Position',[trange(2) - (trange(2)-trange(1))*0.02,tempyl(2)*1.07],'Interpreter','latex')
+legend([p1,p2])
+hold off
+
+%Tile 2: Wind Speed
+ax2_1 = axes(tlay);
+hold on
+ax2_1.Layout.Tile = 2;
+ax2_1.Box = 'off';
+ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
+set(ax1_1,'FontSize',24)
+set(ax1_1,'TickLabelInterpreter','latex')
+set(ax1_1, 'YLim',[0,2.5e-7],'XLim',trange)
+plot(ax2_1,numPairs*spp, u_mean,'LineWidth',4)
+ylabel(ax2_1,'$\overline{U}_{air}\ \mathrm{(m/s)}$','Interpreter','latex')
+set(ax2_1,'FontSize',24)
+set(ax2_1,'TickLabelInterpreter','latex')
+set(ax2_1, 'YLim',[0,6],'XLim',trange)
+ax2_1.Box = 'off';
+hold off
+
+ax2_2 = axes(tlay);
+ax2_2.Layout.Tile = 2;
+ax2_2.Color = 'none';
+ax2_2.YAxis.Visible = 'off';
+ax2_2.Box = 'off';
+hold on
+xticks(ax2_2,t(1:tickint:end))
+xticklabels(ax2_2,PairNumCont(1:tickint:end))
+set(ax2_2,'XLim',trange)
+ax2_2.XAxisLocation = 'top';
+ax2_2.XAxis.FontSize = 8;
+ax2_2.XAxis.Color = [0.5,0.5,0.5];
+set(ax2_2,'TickLabelInterpreter','latex')
+set(ax2_2, 'YLim',[0,0.05],'XLim',trange)
+
+%Tile 3: Surface Area
+ax3_1 = axes(tlay);
+hold on
+ax3_1.Layout.Tile = 3;
+ax3_1.Box = 'off';
+A_surf = zeros(1,length(t));
+for n = 1:length(t)
+    for i = 1:(size(eta,2)-1)
+        A_surf(n) = A_surf(n) + ((eta(n,i+1) - eta(n,i))^2 + (x_eta(n,i+1) - x_eta(n,i))^2).^0.5;
+    end
+end
+
+l_interface = x_eta(1,end) - x_eta(1,1);
+plot(ax3_1,t,(A_surf - l_interface)/l_interface*100,'LineWidth',4)
+hold on
+xlabel(ax3_1,'Time (s)','Interpreter','latex')
+ylabel('$\mathrm{Surface\ Increase\ (\%)}$','Interpreter','latex')
+set(ax3_1,'FontSize',24)
+set(ax3_1,'TickLabelInterpreter','latex')
+set(ax3_1, 'YLim',[0,4],'XLim',trange)
+
+ax3_2 = axes(tlay);
+ax3_2.Layout.Tile = 3;
+ax3_2.Color = 'none';
+ax3_2.YAxis.Visible = 'off';
+hold on
+xticks(ax3_2,t(1:tickint:end))
+xticklabels(ax3_2,PairNumCont(1:tickint:end))
+set(ax3_2,'XLim',trange)
+ax3_2.XAxisLocation = 'top';
+ax3_2.XAxis.FontSize = 8;
+ax3_2.XAxis.Color = [0.5,0.5,0.5];
+set(ax3_2,'TickLabelInterpreter','latex')
+set(ax3_2, 'YLim',[0,0.05],'XLim',trange)
+
+linkaxes([ax1_1,ax1_2,ax3_1, ax3_2,ax2_1],'x')
+
 
 
 %% Fit growth rate to initial wavelet growth stage
