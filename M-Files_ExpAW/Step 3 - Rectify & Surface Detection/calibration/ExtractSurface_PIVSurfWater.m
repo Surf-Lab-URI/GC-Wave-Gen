@@ -80,7 +80,7 @@ T2 = maketform('projective',U2,X2);
 
 % Further rototranslation to match flat surface
 RotAngle = (674.955-684.981)/(5250.53+477.054);
-DY = 30;%4;%25; Was originally 4 coming from Fabrice
+DY = 15;%30%4;%25; Was originally 4 coming from Fabrice
 if strcmp(Water_Surface,'2')
     DY = DY-8;
 end
