@@ -38,15 +38,23 @@ LoadPath = [DataPath 'RAW/'];
 RawDataPath = [DataPath 'RAW/'];
 ResultsPath = [DataPath 'RESULTS_andy/'];
 ManualResultsPath = [DataPath 'RESULTS_Manual/'];
+WaterPath = [ResultsPath 'Water/'];
+SaveSurfWaterPath = [WaterPath 'Surfaces/'];
+
+runName = sprintf('Run%d',runNum);
 
 PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
 %% Prep for surface detection and everything that relies on that.
-frames = 0:1:1500; %numbers of frames to loop through. First frame in the experiment is denoted by index 0.
+frames = 0:1:1499; %numbers of frames to loop through. First frame in the experiment is denoted by index 0.
+PairNumsInt = (ceil(frames(1)/2)):(floor(frames(end)/2));
+numPairs = length(PairNumsInt);
+
 nF = length(frames);
 fXs = zeros(nF, 3639);
 fYs = zeros(nF, 3639);
-XPIVW_PIVSurfW1_Surfaces = NaN(nF,5726);
-PIVW_PIVSurfW1_Surfaces = NaN(nF,5726);
+XPIVW_PIVSurfW_Surfaces = NaN(nF,5726);
+PIVW_PIVSurfW_Surfaces = NaN(nF,5726);
+surfVelMeans = NaN(numPairs,1);
 
 mpp = 6.493178e-5; % meters per pixel, for main dataset surface images only
 
@@ -68,43 +76,81 @@ DeltaT = nF/2*spp;
 % image_index = FI+1:LI; %1, 3, 5,... Set of indices to loop through. Images are processed in pairs, hence the increment of 2
 
 %% Detect surface in every frame specified by frames
-framesCtr = 1;
-tic
-parfor framesCtr = 1:length(frames)
-    idx = frames(framesCtr);
-    PIV1Dir_temp = PIVWaterDir;
+redetectSurf = false; % set to true if you want to run surface detection here. Set to false if you want to read the surf from the Water/Surfaces .mat files
 
-    imagename = [PIV1Dir_temp(idx+1).folder '/' PIV1Dir_temp(idx+1).name];
-    imagename
+if redetectSurf
+    tic
+    parfor framesCtr = 1:length(frames)
+        idx = frames(framesCtr);
+        PIV1Dir_temp = PIVWaterDir;
     
-    [IM1] = load_Image_IOCoreView_12MP(imagename);
-    PIVSurf_W1_Raw = IM1;
-    PIVSURF_W1 = PIVSurf_W1_Raw./(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)/max(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)))';
-
-    [PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
-    [PIVSurfW1_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
-
-    PIV1_W = [];
-    [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface, XPIVW_PIVSurfW1_Surface, PIVW_PIVSurfW1_Surface, PIVW1_Surface] = ExtractSurface_PIVSurfWater(PIVSurfW1_CamAngle,PIV1_W,'1');
+        imagename = [PIV1Dir_temp(idx+1).folder '/' PIV1Dir_temp(idx+1).name];
+        imagename
+        
+        [IM1] = load_Image_IOCoreView_12MP(imagename);
+        PIVSurf_W1_Raw = IM1;
+        PIVSURF_W1 = PIVSurf_W1_Raw./(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)/max(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)))';
     
-
-
-    % imagesc(PIVSurfW1_CamAngle, [0,70])
-    % hold on
-    % set(gca,'DataAspectRatio',[1 1 1])
-    % ylim([1900,2200])
-    % plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, 'r')
-    % pause(0.1)
+        [PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
+        [PIVSurfW1_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
     
-    fXs(framesCtr,:) = XPIVSurfW1_Surface;
-    fYs(framesCtr,:) = PIVSurfW1_Surface;
-    XPIVW_PIVSurfW1_Surfaces(framesCtr,:) = XPIVW_PIVSurfW1_Surface;
-    PIVW_PIVSurfW1_Surfaces(framesCtr,:) = PIVW_PIVSurfW1_Surface;
+        PIV1_W = [];
+        [BadFramePIVSurfW1, XPIVSurfW1_Surface, PIVSurfW1_Surface, XPIVW_PIVSurfW1_Surface, PIVW_PIVSurfW1_Surface, PIVW1_Surface] = ExtractSurface_PIVSurfWater(PIVSurfW1_CamAngle,PIV1_W,'1');
+        
+    
+    
+        % imagesc(PIVSurfW1_CamAngle, [0,70])
+        % hold on
+        % set(gca,'DataAspectRatio',[1 1 1])
+        % ylim([1900,2200])
+        % plot(XPIVSurfW1_Surface, PIVSurfW1_Surface, 'r')
+        % pause(0.1)
+        
+        fXs(framesCtr,:) = XPIVSurfW1_Surface;
+        fYs(framesCtr,:) = PIVSurfW1_Surface;
+        XPIVW_PIVSurfW_Surfaces(framesCtr,:) = XPIVW_PIVSurfW1_Surface;
+        PIVW_PIVSurfW_Surfaces(framesCtr,:) = PIVW_PIVSurfW1_Surface;
+    end
+    toc
+    save('temp.mat','-v7.3')
+    clear
+    load('temp.mat')
+else
+    for i = 1:numPairs
+        PairNumInt = PairNumsInt(i);
+        PairNum = sprintf('%04d',PairNumInt)
+        SurfFileName = [expName '_Scene' runName '_Surfaces_' PairNum];
+        % PixRes_Water1 = struct();
+        % PixRes_Water2 = struct();
+        % SurfRes_Water1 = struct();
+        % SurfRes_Water2 = struct();
+        % SurfVel = struct();
+        % CST = struct();
+        try
+            load([SaveSurfWaterPath SurfFileName '.mat']);
+            % PixRes_Water1 = SavedSurfsWater.PixRes_Water1;
+            % PixRes_Water2 = SavedSurfsWater.PixRes_Water2;
+            % SurfRes_Water1 = SavedSurfsWater.SurfRes_Water1;
+            % SurfRes_Water2 = SavedSurfsWater.SurfRes_Water2;
+            % SurfVel = SavedSurfsWater.SurfVel;
+            % CST = SavedSurfsWater.CST;
+    
+            surfVelMeans(i) = mean(SurfVel.delta_x,'all','omitmissing')*CST.DX_W/CST.DT_W;
+            fXs(i*2-1,:) = SurfRes_Water1.XPIVSurfW1_Surface;
+            fYs(i*2-1,:) = SurfRes_Water1.PIVSurfW1_Surface;
+            XPIVW_PIVSurfW_Surfaces(i*2-1,:) = PixRes_Water1.XPIVW_PIVSurfW1_Surface;
+            PIVW_PIVSurfW_Surfaces(i*2-1,:) = PixRes_Water1.PIVW_PIVSurfW1_Surface;
+            fXs(i*2,:) = SurfRes_Water2.XPIVSurfW2_Surface;
+            fYs(i*2,:) = SurfRes_Water2.PIVSurfW2_Surface;
+            XPIVW_PIVSurfW_Surfaces(i*2,:) = PixRes_Water2.XPIVW_PIVSurfW2_Surface;
+            PIVW_PIVSurfW_Surfaces(i*2,:) = PixRes_Water2.PIVW_PIVSurfW2_Surface;
+
+        catch
+            SurfFileName = [expName '_Scene' runName '_Surfaces_' PairNum];
+            disp(['Could not load surface from file ' SaveSurfWaterPath SurfFileName '.mat'])
+        end
+    end
 end
-toc
-save('temp.mat','-v7.3')
-clear
-load('temp.mat')
 %% Assemble composite image for hovmoller plot
 tic
 CompImg = NaN(ceil(DeltaT*dydt),4176);
@@ -211,8 +257,8 @@ for i = 2:nF
     end
 end
 PairNumCont = t/spp;
-
-etaMeanPIVW = mean(PIVW_PIVSurfW1_Surfaces*CST.DX_W, 'all','omitmissing');
+CST = load('CST.mat'); %This is bad and should be changed because it relies on a file in the main M-Files_ExpAW directory that is specific to a give experiment
+etaMeanPIVW = mean(PIVW_PIVSurfW_Surfaces*CST.DX_W, 'all','omitmissing');
 
 eta = (fYs-mean(fYs(1:20,:),'all'))*mpp;
 x_eta = fXs*mpp;
@@ -222,19 +268,6 @@ eta_x = diff(eta/mpp,1,2);
 
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
-% UAirDir = '/media/surflab/Working24/ExpAW/ExpAW5_acc0.22_W5V/ExpAW5_acc0.22_W5V_Run2/RESULTS_andy/Air/CALCULATED_FIELDS/Cartesian Fields/Velocity/';
-% PairNums = floor(t(1)/spp):floor(t(end)/spp);
-% u_mean = NaN(1,length(PairNums));
-% for n = 1:length(PairNums)
-%     PairNum = PairNums(n);
-%     try
-%         fname = sprintf('ExpAW5_acc0.22_W5V_Run2_CartesianAir_%04d.mat',PairNum);
-%         load([UAirDir,fname],'CST','u','Mask')
-%         u_mean(n) = mean(u.*Mask*CST.DX/CST.DT,'all','omitmissing');
-%     catch
-%         disp('Missing Pair')
-%     end
-% end
 %% Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 1: Calculate Air PIV stats
 
 PairNums = floor(t(1)/spp):floor(t(end)/spp);
@@ -245,13 +278,12 @@ fname = sprintf('%s_CartesianAir_%04d.mat',expRunName(1:end-1), PairNum);
 Cartesian_Air = load([UAirDir,fname]);
 CST = Cartesian_Air.CST;
 
-up_b = zeros(length(PairNums),size(Cartesian_Air.Mask,1));
-wp_b = zeros(length(PairNums),size(Cartesian_Air.Mask,1));
-u_b = zeros(length(PairNums),1);
-w_b = zeros(length(PairNums),1);
-upwp_b = zeros(length(PairNums),size(Cartesian_Air.Mask,1));
-dupwpdz_b = zeros(length(PairNums),size(Cartesian_Air.Mask,1)-1);
-
+up_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
+wp_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
+u_mean = NaN(length(PairNums),1);
+w_mean = NaN(length(PairNums),1);
+upwp_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
+dupwpdz_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1)-1);
 
 tic
 parfor n = 1:length(PairNums)
@@ -280,6 +312,9 @@ parfor n = 1:length(PairNums)
         upwp_b(n,:) = mean(up.*wp,2,'omitnan');
         
         dupwpdz_b(n,:) = mean(diff(up.*wp,1,1),2,'omitnan');
+
+        u_mean(n) = mean(u,'all','omitmissing');
+        w_mean(n) = mean(w,'all','omitmissing');
     
         disp(['Pair ' Cartesian_Air.PairNum ' Finished!'])
     catch
@@ -301,7 +336,7 @@ t_airPIV = PairNums*spp;
 co = colororder('gem');
 
 % Tile 1, eta_var
-figure(3)
+figure(4)
 tlay = tiledlayout(4,1);
 
 ax1_1 = axes(tlay);
@@ -408,6 +443,7 @@ hold on
 ax3_1.Layout.Tile = 3;
 ax3_1.Box = 'off';
 p3_1 = plot(ax3_1,manTimes,manSurfVels*100,'.','MarkerSize',20,'Color',co(4,:),'DisplayName','Manual $U_{surf}$');
+p3_2 = plot(ax3_1,t_airPIV,surfVelMeans*100,'-','LineWidth',3,'Color',co(4,:),'DisplayName','Automated $U_{surf}$');
 set(ax3_1,'FontSize',18)
 set(ax3_1,'TickLabelInterpreter','latex')
 set(ax3_1,'XLim',trange)
@@ -440,7 +476,7 @@ ylabel(ax3_3,{'Shear Layer Depth'; '(cm)'},'Interpreter','latex')
 ax3_3.YColor = co(5,:);
 set(ax3_3,'FontSize',18,'TickLabelInterpreter','latex')
 
-legend([p3_1, p3_3],'Interpreter','latex','Location', 'northwest')
+legend([p3_1,p3_2 p3_3],'Interpreter','latex','Location', 'northwest')
 
 % Tile 4: Surface Area
 ax4_1 = axes(tlay);
