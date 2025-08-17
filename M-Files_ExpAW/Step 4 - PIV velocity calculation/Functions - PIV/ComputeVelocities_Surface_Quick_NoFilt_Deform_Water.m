@@ -13,6 +13,13 @@ function [CompVel] =  ComputeVelocities_Surface_Quick_NoFilt_Deform_Water(PIV1, 
 %    IntrWndw = [ 64 32 16 8];
 %    GrdSpc = [ 32 16 8 4];
 
+% This version of ComputeVelocities was created by Andrew Goering on
+% 08/14/2025 for use with the SurfaceVelocity script. It performs the same
+% PIV routine as the original script, but it can handle images that are
+% very narrow in the vertical dimension, which is useful if running PIV on
+% just the surface. It will not actively pick out the surface or transform
+% the image into surface-following coordinates. That must be done before
+% passing the image to this function.
 
 PIV1 = double(PIV1) .* Mask1;
 PIV2 = double(PIV2) .* Mask2;
@@ -31,7 +38,7 @@ number_of_levels = length(IntrWndw); % The first four, five, six levels are
 
 %%
 % ----------------------- GOBAL LEVEL CALCULATIONS ---------------------- %
-for lvl = 1:number_of_levels-1; % First level
+for lvl = 1:number_of_levels-1 % First level
     
     IW = IntrWndw(lvl); % Interrogation window size
     GS = GrdSpc(lvl); % Grid spacing size
@@ -122,20 +129,20 @@ for lvl = 1:number_of_levels-1; % First level
                     ldelx =  Xpkx - IW/2 - 1; % Local velocity calculated here
                     ldely =  Xpky - (bdryB-bdryT+1)/2 - 1;
                     
-                    % 3 Point Gaussian Interpolation
-                     T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1) );
-                     t = T(:,2);
-                     SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
-                     t = T(2,:);
-                     SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+                    % % 3 Point Gaussian Interpolation
+                    %  T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1) );
+                    %  t = T(:,2);
+                    %  SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+                    %  t = T(2,:);
+                    %  SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
 
            
 
-                     if (isreal([SubpixelY SubpixelX]) && (SubpixelY<1) && (SubpixelX<1) &&  ldelx< IW/2 &&  ldely< (bdryB-bdryT+1)/2)
+                     if (bxCNTc >1 && ldelx > -(bdryR-bdryL+1)/3 && abs(ldely)< (bdryB-bdryT+1)/2 && max(max(Xcorr)) > 0.1)
                         % Velocity is round of  previous guess (do not keep 
                         % previous subpixel estimate) + local + subpix
-                        delx(bxCNTr, bxCNTc) = pdelx(bxCNTr, bxCNTc) + ldelx + SubpixelX;                           
-                        dely(bxCNTr, bxCNTc) = pdely(bxCNTr, bxCNTc) + ldely + SubpixelY;
+                        delx(bxCNTr, bxCNTc) = pdelx(bxCNTr, bxCNTc) + ldelx;% + SubpixelX;                           
+                        dely(bxCNTr, bxCNTc) = pdely(bxCNTr, bxCNTc) + ldely;% + SubpixelY;
                         %GLOBAL(bxCNTr, bxCNTc) = 1;
                         dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
                    
@@ -154,7 +161,8 @@ for lvl = 1:number_of_levels-1; % First level
     end % End of column for loop
     
     % ---------------------- GLOBAL LEVEL FILTERS ----------------------- %
-    % Filter and smooth, reject displacement more than 1/2 the window size
+    % Throw out outliers greater than mean away from the mean.
+    delx(abs(delx-mean(delx,'all','omitmissing')) > mean(delx,'all','omitmissing')) = nan;
     
     % Outlier interpolation
     delx = (smoothn(delx,'robust'));
@@ -207,6 +215,8 @@ end
 
 lvl = number_of_levels;
 
+
+
 IW = IntrWndw(lvl); % Interrogation window size
 GS = GrdSpc(lvl); % Grid spacing size
 
@@ -222,8 +232,15 @@ if bxsNh < 1
 end
 bxsNw = floor(1 + (w - IW)/GS); % Number of interrogation blocks in width
 
-delx = pdelx;% NaN(bxsNh, bxsNw); % Total velocity in x - accumulates from previous levels with INTdel and gdel
-dely = pdely;%NaN(bxsNh, bxsNw); % Total velocity in y - accumulates from previous levels with INTdel and gdel
+if lvl == 1 % Initialize the global motion and correlation if it is the
+% first level , otherwise it is passed from previous  level after being
+% interpolated to proper grid.
+    pdelx = zeros(bxsNh, bxsNw);
+    pdely = zeros(bxsNh, bxsNw);
+end
+
+delx = NaN(bxsNh, bxsNw); % Total velocity in x - accumulates from previous levels with INTdel and gdel
+dely = NaN(bxsNh, bxsNw); % Total velocity in y - accumulates from previous levels with INTdel and gdel
 dcor = NaN(bxsNh, bxsNw); % Correlation - accumulates from previous levels with INTcor and gcor
 MASK = NaN(bxsNh, bxsNw); % Shows where the PIV calculation is valid , i.e. where there's data
 
@@ -279,19 +296,19 @@ for c = x % Loop in column: x-coordinate of center of interrogation window
                 ldelx = Xpkx - IW/2 - 1; % Local velocity calculated here
                 ldely =  Xpky - (bdryB-bdryT+1)/2 - 1;
 
-                % 3 Point Gaussian Interpolation
-                 T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1)); 
-                 t = T(:,2);
-                 SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
-                 t = T(2,:);
-                 SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+                % % 3 Point Gaussian Interpolation
+                %  T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1)); 
+                %  t = T(:,2);
+                %  SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+                %  t = T(2,:);
+                %  SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
 
                 
-                if (isreal([SubpixelY SubpixelX]) && (SubpixelY<1) && (SubpixelX<1) )
+                if bxCNTc > 1 && max(max(Xcorr)) > 0.2 && ldelx > -(bdryR-bdryL+1)/3
                     % Velocity is round of previous guess (do not keep pre-
                     % vious subpixel estimate) + local + subpix
-                    delx(bxCNTr, bxCNTc) = pdelx(bxCNTr, bxCNTc) + ldelx + SubpixelX;
-                    dely(bxCNTr, bxCNTc) = pdely(bxCNTr, bxCNTc) + ldely + SubpixelY;
+                    delx(bxCNTr, bxCNTc) = pdelx(bxCNTr, bxCNTc) + ldelx; %+ SubpixelX;
+                    dely(bxCNTr, bxCNTc) = pdely(bxCNTr, bxCNTc) + ldely; %+ SubpixelY;
                     dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
                 
                 end
@@ -308,10 +325,31 @@ for c = x % Loop in column: x-coordinate of center of interrogation window
     
 end % End of column for loop
 
+%% Not needed for output. For manual verification only
+[X,Y] = meshgrid(x, y);
+%Interpolation of velocity to image resolution
+if(size(delx,1)) > 1
+    U1 = interp2(X,Y,delx,X1,Y1,'*spline'); 
+    V1 = interp2(X,Y,dely,X1,Y1,'*spline');
+else
+    u1 = interp1(x,delx,1:w);
+    v1 = interp1(x,dely,1:w);
+    U1 = zeros(h,w);
+    V1 = zeros(h,w);
+    for jj = 1:h
+        U1(jj,:) = u1;
+        V1(jj,:) = v1;
+    end
+end
+
+%Warping both images according to velocity (centered difference)
+IM1_D= interp2(1:size(PIV1,2),(1:size(PIV1,1))',PIV1,X1,Y1,'*linear');
+IM2_D= interp2(1:size(PIV2,2),(1:size(PIV2,1))',PIV2,X1+U1,Y1+V1,'*linear');
+
 % --------------------- END LOCAL LEVEL CALCULATION --------------------- %
 %%
-delx_s = smoothn(delx,0.000001,'robust');
-dely_s = smoothn(dely,0.000001,'robust');
+delx_s = delx;%smoothn(delx,0.000001,'robust');
+dely_s = dely;%smoothn(dely,0.000001,'robust');
 [X,Y] = meshgrid(x, y);
     %Interpolation of velocity to image resolution
 if(size(delx_s,1)) > 1
