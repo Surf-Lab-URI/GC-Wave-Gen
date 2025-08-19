@@ -60,8 +60,8 @@ for lvl = 1:number_of_levels-1 % First level
         end
         INTdelx = Uguess; %zeros(bxsNh, bxsNw);
         INTdely = Vguess; %zeros(bxsNh, bxsNw);
-        INTdelx = zeros(bxsNh, bxsNw);
-        INTdely = zeros(bxsNh, bxsNw);
+        % INTdelx = zeros(bxsNh, bxsNw);
+        % INTdely = zeros(bxsNh, bxsNw);
     end
 
 
