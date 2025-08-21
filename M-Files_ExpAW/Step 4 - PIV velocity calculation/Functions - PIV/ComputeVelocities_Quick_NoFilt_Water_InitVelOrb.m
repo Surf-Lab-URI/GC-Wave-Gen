@@ -1,4 +1,4 @@
-function [CompVel] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(IM1, IM2, Mask1, Mask2, Mask, IntrWndw, GrdSpc,Uorb_W1,Vorb_W1)
+function [CompVel] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(IM1, IM2, Mask1, Mask2, Mask, IntrWndw, GrdSpc,Uorb_W1,Vorb_W1,subpixel)
 % The function ComputeVelocities calculates velocities in the air above the
 % water (ones in mask), from particle displacement in fused images. This is
 % written by Fabrice Veron, and modified later  by Marc Buckley on Novemebr
@@ -134,24 +134,36 @@ for lvl = 1:number_of_levels-1 % First level
                     ldelx =  Xpkx - IW/2 - 1; % Local velocity calculated here
                     ldely =  Xpky - IW/2 - 1;
 
-                    % 3 Point Gaussian Interpolation
-                    T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1) );
-                    t = T(:,2);
-                    SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
-                    t = T(2,:);
-                    SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
-
-
-
-                    if (isreal(SubpixelY) && isreal(SubpixelX) && (SubpixelY<1) && (SubpixelX<1) &&  ldelx< IW/2 &&  ldely< IW/2)
-                        %if ( length(Xpky)==1 && length(Xpkx)==1 &&  ldelx< IW/2 &&  ldely< IW/2)
-                        % Velocity is round of  previous guess (do not keep
-                        % previous subpixel estimate) + local + subpix
-                        delx(bxCNTr, bxCNTc) = gdelx_round + ldelx + SubpixelX;
-                        dely(bxCNTr, bxCNTc) = gdely_round + ldely + SubpixelY;
-                        %GLOBAL(bxCNTr, bxCNTc) = 1;
-                        %dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
-
+                    if subpixel
+                        % 3 Point Gaussian Interpolation
+                        T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1) );
+                        t = T(:,2);
+                        SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+                        t = T(2,:);
+                        SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+    
+    
+    
+                        if (isreal(SubpixelY) && isreal(SubpixelX) && (SubpixelY<1) && (SubpixelX<1) &&  ldelx< IW/2 &&  ldely< IW/2)
+                            %if ( length(Xpky)==1 && length(Xpkx)==1 &&  ldelx< IW/2 &&  ldely< IW/2)
+                            % Velocity is round of  previous guess (do not keep
+                            % previous subpixel estimate) + local + subpix
+                            delx(bxCNTr, bxCNTc) = gdelx_round + ldelx + SubpixelX;
+                            dely(bxCNTr, bxCNTc) = gdely_round + ldely + SubpixelY;
+                            %GLOBAL(bxCNTr, bxCNTc) = 1;
+                            dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
+    
+                        end
+                    else
+                         if ldelx< IW/2 &&  ldely< IW/2
+                            %if ( length(Xpky)==1 && length(Xpkx)==1 &&  ldelx< IW/2 &&  ldely< IW/2)
+                            % Velocity is round of  previous guess (do not keep
+                            % previous subpixel estimate) + local + subpix
+                            delx(bxCNTr, bxCNTc) = gdelx_round + ldelx;
+                            dely(bxCNTr, bxCNTc) = gdely_round + ldely;
+                            %GLOBAL(bxCNTr, bxCNTc) = 1;
+                            dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
+                         end
                     end
 
                 end
@@ -260,39 +272,50 @@ for c = x % Loop in column: x-coordinate of center of interrogation window
                 % [Xq,Yq] = meshgrid(-1:0.01:1,-1:0.01:1);
                 % Vq = interp2(X,Y,T,Xq,Yq,'*spline');
                 % xx=[-1:0.01:1]; SubpixelY=xx(i); SubpixelX=xx(j);
-
-                % 3 Point Gaussian Interpolation
-                T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1));
-
-                t = T(:,2);
-                SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
-                t = T(2,:);
-                SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
-                %         for i = -1:1
-                %             for j = -1:1
-                %
-                %                 c10(j+2,i+2)=i*T (i+2,j+2);
-                %                 c01(j+2,i+2) = j*T (i+2,j+2);
-                %                 c11(j+2,i+2) = i*j*T (i+2,j+2);
-                %                 c20(j+2,i+2) = (3*i^2-2)*T (i+2,j+2);
-                %                 c02(j+2,i+2) = (3*j^2-2)*T (i+2,j+2);
-                %             end
-                %         end
-                %         c10 = (1/6)*sum(sum(c10));
-                %         c01 = (1/6)*sum(sum(c01));
-                %         c11 = (1/4)*sum(sum(c11));
-                %         c20 = (1/6)*sum(sum(c20));
-                %         c02 = (1/6)*sum(sum(c02));
-                %         SubpixelX = squeeze((c11.*c01-2*c10.*c02)./(4*c20.*c02-c11.^2));
-                %         SubpixelY = squeeze((c11.*c10-2*c01.*c20)./(4*c20.*c02-c11.^2));
-
-                if (isreal(SubpixelY) && isreal(SubpixelX) && (SubpixelY<1) && (SubpixelX<1) &&  ldelx< IW/2 &&  ldely< IW/2)
-                    % Velocity is round of previous guess (do not keep pre-
-                    % vious subpixel estimate) + local + subpix
-                    delx(bxCNTr, bxCNTc) = gdelx_round + ldelx + SubpixelX;
-                    dely(bxCNTr, bxCNTc) = gdely_round + ldely + SubpixelY;
-                    dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
-
+                
+                if subpixel
+                    % 3 Point Gaussian Interpolation
+                    T = log(Xcorr (Xpky-1:Xpky+1, Xpkx-1:Xpkx+1));
+    
+                    t = T(:,2);
+                    SubpixelY = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+                    t = T(2,:);
+                    SubpixelX = (1/2)*(t(3) - t(1))/(2*t(2) - t(1) - t(3));
+                    %         for i = -1:1
+                    %             for j = -1:1
+                    %
+                    %                 c10(j+2,i+2)=i*T (i+2,j+2);
+                    %                 c01(j+2,i+2) = j*T (i+2,j+2);
+                    %                 c11(j+2,i+2) = i*j*T (i+2,j+2);
+                    %                 c20(j+2,i+2) = (3*i^2-2)*T (i+2,j+2);
+                    %                 c02(j+2,i+2) = (3*j^2-2)*T (i+2,j+2);
+                    %             end
+                    %         end
+                    %         c10 = (1/6)*sum(sum(c10));
+                    %         c01 = (1/6)*sum(sum(c01));
+                    %         c11 = (1/4)*sum(sum(c11));
+                    %         c20 = (1/6)*sum(sum(c20));
+                    %         c02 = (1/6)*sum(sum(c02));
+                    %         SubpixelX = squeeze((c11.*c01-2*c10.*c02)./(4*c20.*c02-c11.^2));
+                    %         SubpixelY = squeeze((c11.*c10-2*c01.*c20)./(4*c20.*c02-c11.^2));
+    
+                    if (isreal(SubpixelY) && isreal(SubpixelX) && (SubpixelY<1) && (SubpixelX<1) &&  ldelx< IW/2 &&  ldely< IW/2)
+                        % Velocity is round of previous guess (do not keep pre-
+                        % vious subpixel estimate) + local + subpix
+                        delx(bxCNTr, bxCNTc) = gdelx_round + ldelx + SubpixelX;
+                        dely(bxCNTr, bxCNTc) = gdely_round + ldely + SubpixelY;
+                        dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
+    
+                    end
+                else
+                    if (ldelx< IW/2 &&  ldely< IW/2)
+                        % Velocity is round of previous guess (do not keep pre-
+                        % vious subpixel estimate) + local + subpix
+                        delx(bxCNTr, bxCNTc) = gdelx_round + ldelx + SubpixelX;
+                        dely(bxCNTr, bxCNTc) = gdely_round + ldely + SubpixelY;
+                        dcor(bxCNTr, bxCNTc) = max(max(Xcorr));
+    
+                    end
                 end
 
             end
