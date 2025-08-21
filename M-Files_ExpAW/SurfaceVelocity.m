@@ -5,7 +5,7 @@ ROOTPath = '/media/surflab/Working24/ExpAW/';
 
 ExpDir = dir([ROOTPath 'Exp*']); % Directory with all the experiments
 
-i = 5; % ExpNumber
+for i = 4 % ExpNumber
 runNum = 2;
 
 ExpAW = ExpDir(i).name(6);
@@ -50,7 +50,7 @@ FI = 0;
 LI = min(length(PIVWaterDir)-1,length(PIVAirDir)-1);
 image_index = FI+1:2:LI;
 
-parfor idx = 1:750
+parfor idx = 1:length(image_index)
     CST = load('CST.mat');
 
     pair_index = (image_index(idx)+1)/2;
@@ -317,6 +317,8 @@ parfor idx = 1:750
     end
 
 end
+end
+
 %% Surface PIV
 
 function [SurfVel] = ComputeSurfaceVelocity(PIV1, PIV1_Surface, PIV2, PIV2_Surface, Mask1, Mask2, IntrWndw, GrdSpc, H)
