@@ -31,7 +31,7 @@ number_of_levels = length(IntrWndw); % The first four, five, six levels are
 
 %%
 % ----------------------- GOBAL LEVEL CALCULATIONS ---------------------- %
-for lvl = 1:number_of_levels-1; % First level
+for lvl = 1:number_of_levels-1 % First level
     
     IW = IntrWndw(lvl); % Interrogation window size
     GS = GrdSpc(lvl); % Grid spacing size
@@ -264,6 +264,11 @@ for c = x % Loop in column: x-coordinate of center of interrogation window
     
 end % End of column for loop
 
+[X,Y] = meshgrid(x, y);
+
+U1 = interp2(X,Y,delx,X1,Y1,'*spline'); 
+V1 = interp2(X,Y,dely,X1,Y1,'*spline');
+
 % --------------------- END LOCAL LEVEL CALCULATION --------------------- %
 %%
 
@@ -274,6 +279,9 @@ CompVel.Mask = MASK;
 
 CompVel.delta_x = delx; % Final Result: vectors going downwind (from left to right) are positive
 CompVel.delta_z = - dely; % Final Result: vectors going away from surface (upward) are positive
+
+CompVel.delta_x1 = U1; %Final Result at resolution of the original image
+CompVel.delta_z1 = -V1; %Final Result at resolution of the original image
 
 CompVel.xPIV = x; % 0 is upper left corner of image (upwind, away from surface)
 CompVel.zPIV = y; % 0 is upper left corner of image (upwind, away from surface)
