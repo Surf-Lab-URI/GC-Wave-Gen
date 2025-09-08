@@ -8,11 +8,12 @@ ROOTPath = '/media/surflab/Working24/ExpAW/';
 ExpDir = dir([ROOTPath 'Exp*']); % Directory with all the experiments
 
 i = 5; % ExpNumber
-runNum = 2;
+runNum = 3;
 
 ExpAW = ExpDir(i).name(6);
 Acc = ExpDir(i).name(11:14);
 Wind = ExpDir(i).name(17);
+
 switch Wind
     case '4'
         DeltaT_A = 200d-6;
@@ -45,7 +46,7 @@ runName = sprintf('Run%d',runNum);
 
 PIVWaterDir = dir([LoadPath 'PIVSURF Water/' '*.raw']); %Same for water
 %% Prep for surface detection and everything that relies on that.
-frames = 0:1:1499; %numbers of frames to loop through. First frame in the experiment is denoted by index 0.
+frames = 0:1:1499; %numbers of frames to loop through. First frame in the experiment is denoted by index 0. Must end on odd number so that you get an integer number of pairs
 PairNumsInt = (ceil(frames(1)/2)):(floor(frames(end)/2));
 numPairs = length(PairNumsInt);
 
@@ -55,6 +56,7 @@ fYs = zeros(nF, 3639);
 XPIVW_PIVSurfW_Surfaces = NaN(nF,5726);
 PIVW_PIVSurfW_Surfaces = NaN(nF,5726);
 surfVelMeans = NaN(numPairs,1);
+shearLayerDepths = NaN(numPairs,1);
 
 mpp = 6.493178e-5; % meters per pixel, for main dataset surface images only
 
@@ -116,26 +118,15 @@ if redetectSurf
     clear
     load('temp.mat')
 else
+    tic
     for i = 1:numPairs
         PairNumInt = PairNumsInt(i);
         PairNum = sprintf('%04d',PairNumInt)
         SurfFileName = [expName '_Scene' runName '_Surfaces_' PairNum];
-        % PixRes_Water1 = struct();
-        % PixRes_Water2 = struct();
-        % SurfRes_Water1 = struct();
-        % SurfRes_Water2 = struct();
-        % SurfVel = struct();
-        % CST = struct();
+
         try
             load([SaveSurfWaterPath SurfFileName '.mat']);
-            % PixRes_Water1 = SavedSurfsWater.PixRes_Water1;
-            % PixRes_Water2 = SavedSurfsWater.PixRes_Water2;
-            % SurfRes_Water1 = SavedSurfsWater.SurfRes_Water1;
-            % SurfRes_Water2 = SavedSurfsWater.SurfRes_Water2;
-            % SurfVel = SavedSurfsWater.SurfVel;
-            % CST = SavedSurfsWater.CST;
-    
-            surfVelMeans(i) = mean(SurfVel.delta_x,'all','omitmissing')*CST.DX_W/CST.DT_W;
+
             fXs(i*2-1,:) = SurfRes_Water1.XPIVSurfW1_Surface;
             fYs(i*2-1,:) = SurfRes_Water1.PIVSurfW1_Surface;
             XPIVW_PIVSurfW_Surfaces(i*2-1,:) = PixRes_Water1.XPIVW_PIVSurfW1_Surface;
@@ -144,12 +135,15 @@ else
             fYs(i*2,:) = SurfRes_Water2.PIVSurfW2_Surface;
             XPIVW_PIVSurfW_Surfaces(i*2,:) = PixRes_Water2.XPIVW_PIVSurfW2_Surface;
             PIVW_PIVSurfW_Surfaces(i*2,:) = PixRes_Water2.PIVW_PIVSurfW2_Surface;
+            shearLayerDepths(i) = (SurfVel.bottomShearLayer-SurfVel.mwl)*CST.DX_W;
+            surfVelMeans(i) = mean(SurfVel.delta_x,'all','omitmissing')*CST.DX_W/CST.DT_W;
 
         catch
             SurfFileName = [expName '_Scene' runName '_Surfaces_' PairNum];
             disp(['Could not load surface from file ' SaveSurfWaterPath SurfFileName '.mat'])
         end
     end
+    toc
 end
 %% Assemble composite image for hovmoller plot
 tic
@@ -176,7 +170,7 @@ for framesCtr = 1:length(frames)
     end
 end
 toc
-%% Plot variance of eta, eta_x. Plot surface area
+%% Plot variance of eta, eta_x. Plot surface area.
 t = zeros(1,nF);
 t(1) = floor(frames(1)/2)*spp + mod(frames(1),2)*dt_pair;
 for i = 2:nF
@@ -243,8 +237,8 @@ set(gca,'TickLabelInterpreter','latex')
 linkaxes([ax1_1,ax1_2,ax4_1],'x')
 xlim([24,38])
 ylim([0,4])
-%% Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 1: Calculate eta stats
-trange = [17, 36];
+%% FULL SYNOPSIS: Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 1: Calculate eta stats
+trange = [20, 37];
 PairNumRange = trange/spp;
 t = zeros(1,nF);
 t(1) = floor(frames(1)/2)*spp + mod(frames(1),2)*dt_pair;
@@ -261,6 +255,8 @@ CST = load('CST.mat'); %This is bad and should be changed because it relies on a
 etaMeanPIVW = mean(PIVW_PIVSurfW_Surfaces*CST.DX_W, 'all','omitmissing');
 
 eta = (fYs-mean(fYs(1:20,:),'all'))*mpp;
+eta = detrend(eta);
+% eta = highpass(eta',4,1/mpp,Steepness=0.999999)';
 x_eta = fXs*mpp;
 eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
 
@@ -268,79 +264,135 @@ eta_x = diff(eta/mpp,1,2);
 
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
-%% Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 1: Calculate Air PIV stats
+%% FULL SYNOPSIS: Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 2: Calculate Air PIV stats
+withAir = false;
 
 PairNums = floor(t(1)/spp):floor(t(end)/spp);
-UAirDir = [ResultsPath 'Air/CALCULATED_FIELDS/Cartesian Fields/Velocity/'];
 
-PairNum = PairNums(300);
-fname = sprintf('%s_CartesianAir_%04d.mat',expRunName(1:end-1), PairNum);
-Cartesian_Air = load([UAirDir,fname]);
-CST = Cartesian_Air.CST;
-
-up_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
-wp_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
-u_mean = NaN(length(PairNums),1);
-w_mean = NaN(length(PairNums),1);
-upwp_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
-dupwpdz_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1)-1);
-
-tic
-parfor n = 1:length(PairNums)
-    try
-        PairNum = PairNums(n);
-        fname = sprintf('%s_CartesianAir_%04d.mat',expRunName(1:end-1), PairNum);
+if withAir
+    UAirDir = [ResultsPath 'Air/CALCULATED_FIELDS/Cartesian Fields/Velocity/'];
     
-        Cartesian_Air = load([UAirDir,fname]);
-        CST = Cartesian_Air.CST;
-        PairNum = str2double(Cartesian_Air.PairNum);
+    PairNum = PairNums(281);
+    fname = sprintf('%s_CartesianAir_%04d.mat',expRunName(1:end-1), PairNum);
+    Cartesian_Air = load([UAirDir,fname]);
+    CST = Cartesian_Air.CST;
     
-        u = Cartesian_Air.u.*Cartesian_Air.Mask*CST.DX/CST.DT;
-        w = Cartesian_Air.w.*Cartesian_Air.Mask*CST.DX/CST.DT; %Positive is up for w and z. Postive is down for v and y.
-        speed = (u.^2 + w.^2).^0.5;
-        mask = Cartesian_Air.Mask;
-        
-        u_b = mean(u,2,'omitnan');
-        w_b = mean(w,2,'omitnan');
-        
-        up = u - u_b;
-        wp = w - w_b;
+    up_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
+    wp_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
+    u_mean = NaN(length(PairNums),1);
+    w_mean = NaN(length(PairNums),1);
+    upwp_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1));
+    dupwpdz_b = NaN(length(PairNums),size(Cartesian_Air.Mask,1)-1);
     
-        up_b(n,:) = mean(up,2,'omitnan');
-        wp_b(n,:) = mean(wp,2,'omitnan');
+    tic
+    parfor n = 1:length(PairNums)
+        try
+            PairNum = PairNums(n);
+            fname = sprintf('%s_CartesianAir_%04d.mat',expRunName(1:end-1), PairNum);
         
-        upwp_b(n,:) = mean(up.*wp,2,'omitnan');
+            Cartesian_Air = load([UAirDir,fname]);
+            CST = Cartesian_Air.CST;
+            PairNum = str2double(Cartesian_Air.PairNum);
         
-        dupwpdz_b(n,:) = mean(diff(up.*wp,1,1),2,'omitnan');
-
-        u_mean(n) = mean(u,'all','omitmissing');
-        w_mean(n) = mean(w,'all','omitmissing');
+            u = Cartesian_Air.u.*Cartesian_Air.Mask*CST.DX/CST.DT;
+            w = Cartesian_Air.w.*Cartesian_Air.Mask*CST.DX/CST.DT; %Positive is up for w and z. Postive is down for v and y.
+            speed = (u.^2 + w.^2).^0.5;
+            mask = Cartesian_Air.Mask;
+            
+            u_b = mean(u,2,'omitnan');
+            w_b = mean(w,2,'omitnan');
+            
+            up = u - u_b;
+            wp = w - w_b;
+        
+            up_b(n,:) = mean(up,2,'omitnan');
+            wp_b(n,:) = mean(wp,2,'omitnan');
+            
+            upwp_b(n,:) = mean(up.*wp,2,'omitnan');
+            
+            dupwpdz_b(n,:) = mean(diff(up.*wp,1,1),2,'omitnan');
     
-        disp(['Pair ' Cartesian_Air.PairNum ' Finished!'])
-    catch
-        disp('Missing Pair')
-
+            u_mean(n) = mean(u,'all','omitmissing');
+            w_mean(n) = mean(w,'all','omitmissing');
+        
+            disp(['Pair ' Cartesian_Air.PairNum ' Finished!'])
+        catch
+            disp('Missing Pair')
+    
+        end
+    
     end
-
+    toc
+    
+    etaMeanPIVA = mean(Cartesian_Air.Surface,'all','omitmissing')*CST.DX;
+    
+    
+    plot(PairNums, movmean(upwp_b(:,floor((etaMeanPIVA-0.01)/CST.DX)),10))
 end
-toc
-
-etaMeanPIVA = mean(Cartesian_Air.Surface,'all','omitmissing')*CST.DX;
-
-
-plot(PairNums, movmean(upwp_b(:,floor((etaMeanPIVA-0.01)/CST.DX)),10))
 
 t_airPIV = PairNums*spp;
 
-%% Plot eta_var, eta_x_var, windspeed, surface speed
+%% FULL SYNOPSIS: Plot eta_var, eta_x_var, windspeed, surface speed
+withMan = false;
+
 co = colororder('gem');
+co(6,:) = [0.15 0.15 0.8];
+co(5,:) = [0.1 0.4 0.3];
 
 % Tile 1, eta_var
+% Start and end times for the initial growth phase exponential fit
+if runNum == 2 || runNum == 3
+    switch ExpAW
+        case '1'
+            tfit_i = 43;
+            tfit_f = 45.7;
+        case '2'
+            tfit_i = 33;
+            tfit_f = 36.6;
+        case '3'
+            tfit_i = 28;
+            tfit_f = 33;
+        case '4'
+            tfit_i = 32.5;
+            tfit_f = 35.5;
+        case '5'
+            tfit_i = 27;
+            tfit_f = 29.58;
+        case '7'
+            tfit_i = 26.2;
+            tfit_f = 30.3;
+        case '8'
+            tfit_i = 28;
+            tfit_f = 32;
+    end
+end
+
+ir = [0,0];
+[~,i] = min(abs(t-tfit_i));
+ir(1) = i;
+[~,i] = min(abs(t-tfit_f)); 
+ir(2) = i;
+
+eta_x_var(eta_var > 5e-6) = nan;
+eta_x_var = smoothn(eta_x_var, 1e-9,'robust');
+
+eta_var(eta_var > 5e-6) = nan;
+eta_var = smoothn(eta_var, 1e-9,'robust');
+eta_var_fit = fit(t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'exp1');
+
 figure(4)
-tlay = tiledlayout(4,1);
+if withAir
+    numTiles = 4;
+else
+    numTiles = 3;
+end
+    
+tlay = tiledlayout(numTiles,1);
+
+tileNum = 1;
 
 ax1_1 = axes(tlay);
-ax1_1.Layout.Tile = 1;
+ax1_1.Layout.Tile = tileNum;
 ax1_1.XAxisLocation = 'bottom';
 
 p1_1 = plot(ax1_1,t,eta_var,'LineWidth',3,'Color',co(1,:));
@@ -354,6 +406,14 @@ set(ax1_1, 'YLim',[0,2.5e-7],'XLim',trange)
 ax1_1.Box = 'off';
 s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
 title(s,'Interpreter','latex')
+
+s = sprintf('Points %.2f s to %.2f s',tfit_i,tfit_f);
+p1_3 = plot(ax1_1,t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'.k', 'MarkerSize',15,'DisplayName',s);
+
+fit_line_t = (t(ir(1)):0.01:t(ir(2)))';
+fit_line = eta_var_fit.a.*exp(fit_line_t.*eta_var_fit.b);
+s = sprintf('Fit %.2f s to %.2f s, Growth Rate %.2f 1/s',tfit_i,tfit_f,eta_var_fit.b);
+p1_4 = plot(ax1_1,fit_line_t, fit_line, '-r', 'LineWidth',3,'DisplayName',s);
 hold off
 
 % Tile 1, eta_x_var
@@ -362,7 +422,7 @@ hold on
 ax1_2.YColor = co(2,:);
 ax1_2.Color = 'none';
 ax1_2.Box = 'off';
-ax1_2.Layout.Tile = 1;
+ax1_2.Layout.Tile = tileNum;
 ax1_2.YAxisLocation = 'right';
 p1_2 = plot(ax1_2,t,eta_x_var,'LineWidth',3,'Color',co(2,:));
 set(ax1_2,'FontSize',18)
@@ -378,72 +438,99 @@ set(ax1_2, 'YLim',[0,0.05],'XLim',trange)
 tempyl = ylim;
 xlabel(ax1_2,'PairNum','Position',[trange(2) - (trange(2)-trange(1))*0.015,tempyl(2)*1.07],'Interpreter','latex')
 % legend([p1,p2])
+legend(ax1_1,[p1_3,p1_4],'Interpreter','latex','Location','northwest')
+
 hold off
 
-%Tile 2: Wind Speed
-ax2_1 = axes(tlay);
-hold on
-ax2_1.Layout.Tile = 2;
-ax2_1.Box = 'off';
-ax2_1.YColor = co(6,:);
-ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
-set(ax1_1,'FontSize',18)
-set(ax1_1,'TickLabelInterpreter','latex')
-set(ax1_1, 'YLim',[0,2.5e-7],'XLim',trange)
-p2_1 = plot(ax2_1,t_airPIV, u_mean,'LineWidth',3,'Color',co(6,:),'DisplayName','$\overline{U}_{air}\ \mathrm{(m/s)}$');
-ylabel(ax2_1,'$\overline{U}_{air}\ \mathrm{(m/s)}$','Interpreter','latex')
-set(ax2_1,'FontSize',18)
-set(ax2_1,'TickLabelInterpreter','latex')
-set(ax2_1, 'YLim',[0,6],'XLim',trange)
-ax2_1.Box = 'off';
-hold off
-
-ax2_2 = axes(tlay);
-ax2_2.Layout.Tile = 2;
-ax2_2.Color = 'none';
-ax2_2.YAxis.Visible = 'off';
-ax2_2.Box = 'off';
-hold on
-xticks(ax2_2,t(1:tickint:end))
-xticklabels(ax2_2,PairNumCont(1:tickint:end))
-set(ax2_2,'XLim',trange)
-ax2_2.XAxisLocation = 'top';
-ax2_2.XAxis.FontSize = 6;
-ax2_2.XAxis.Color = [0.5,0.5,0.5];
-set(ax2_2,'TickLabelInterpreter','latex')
-set(ax2_2, 'YLim',[0,0.05],'XLim',trange)
-hold off
-
-upwp_b_plot_loc = 0.01; %height above mwl (m)
-ax2_3 = axes(tlay);
-ax2_3.Layout.Tile = 2;
-hold on
-ax2_3.Color = 'none';
-ax2_3.YAxis.Visible = 'on';
-ax2_3.XAxis.Visible = 'off';
-ax2_3.Box = 'off';
-ax2_3.YAxisLocation = 'right';
-ax2_3.YColor = co(7,:);
-p2_3 = plot(ax2_3,t_airPIV, 100*sqrt(-movmean(upwp_b(:,floor((etaMeanPIVA-upwp_b_plot_loc)/CST.DX)),10,'omitmissing')),'LineWidth',3,'Color',co(7,:),'DisplayName',"$\sqrt{-\overline{u'w'}}$");
-ylabel(ax2_3,"$\sqrt{-\overline{u'w'}}\ \mathrm{(cm/s)}$",'Interpreter','latex')
-set(ax2_3,'FontSize',18)
-set(ax2_3,'TickLabelInterpreter','latex')
-set(ax2_3, 'XLim',trange)
-hold off
+if withAir
+    %Tile 2: Wind Speed
+    tileNum = tileNum + 1;
+    ax2_1 = axes(tlay);
+    hold on
+    ax2_1.Layout.Tile = tileNum;
+    ax2_1.Box = 'off';
+    ax2_1.YColor = co(6,:);
+    ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
+    set(ax1_1,'FontSize',18)
+    set(ax1_1,'TickLabelInterpreter','latex')
+    set(ax1_1, 'YLim',[0,2.5e-7],'XLim',trange)
+    p2_1 = plot(ax2_1,t_airPIV, u_mean,'LineWidth',3,'Color',co(6,:),'DisplayName','$\overline{U}_{air}\ \mathrm{(m/s)}$');
+    ylabel(ax2_1,'$\overline{U}_{air}\ \mathrm{(m/s)}$','Interpreter','latex')
+    set(ax2_1,'FontSize',18)
+    set(ax2_1,'TickLabelInterpreter','latex')
+    set(ax2_1, 'YLim',[0,6],'XLim',trange)
+    ax2_1.Box = 'off';
+    hold off
+    
+    ax2_2 = axes(tlay);
+    ax2_2.Layout.Tile = tileNum;
+    ax2_2.Color = 'none';
+    ax2_2.YAxis.Visible = 'off';
+    ax2_2.Box = 'off';
+    hold on
+    xticks(ax2_2,t(1:tickint:end))
+    xticklabels(ax2_2,PairNumCont(1:tickint:end))
+    set(ax2_2,'XLim',trange)
+    ax2_2.XAxisLocation = 'top';
+    ax2_2.XAxis.FontSize = 6;
+    ax2_2.XAxis.Color = [0.5,0.5,0.5];
+    set(ax2_2,'TickLabelInterpreter','latex')
+    set(ax2_2, 'YLim',[0,0.05],'XLim',trange)
+    hold off
+    
+    upwp_b_plot_loc = 0.01; %height above mwl (m)
+    ax2_3 = axes(tlay);
+    ax2_3.Layout.Tile = tileNum;
+    hold on
+    ax2_3.Color = 'none';
+    ax2_3.YAxis.Visible = 'on';
+    ax2_3.XAxis.Visible = 'off';
+    ax2_3.Box = 'off';
+    ax2_3.YAxisLocation = 'right';
+    ax2_3.YColor = co(7,:);
+    p2_3 = plot(ax2_3,t_airPIV, 100*sqrt(-movmean(upwp_b(:,floor((etaMeanPIVA-upwp_b_plot_loc)/CST.DX)),10,'omitmissing')),'LineWidth',3,'Color',co(7,:),'DisplayName',"$\sqrt{-\overline{u'w'}}$");
+    ylabel(ax2_3,"$\sqrt{-\overline{u'w'}}\ \mathrm{(cm/s)}$",'Interpreter','latex')
+    set(ax2_3,'FontSize',18)
+    set(ax2_3,'TickLabelInterpreter','latex')
+    set(ax2_3, 'XLim',trange)
+    hold off
+end
 
 % Tile 3: Surface Velocity
-manStats = readtable([ManualResultsPath, expRunName(1:end-1), '_ManualDataSummary.csv']);
-manPairNums = manStats{:,1};
-manTimes = manPairNums*spp;
-manSurfVels = manStats{:,2};
-manShearDepths = manStats{:,3}+etaMeanPIVW*CST.DX_W;
+tileNum = tileNum + 1;
+if withMan
+    manStats = readtable([ManualResultsPath, expRunName(1:end-1), '_ManualDataSummary.csv']);
+    manPairNums = manStats{:,1};
+    manTimes = manPairNums*spp;
+    manSurfVels = manStats{:,2};
+    manShearDepths = manStats{:,3}+etaMeanPIVW;
+end
+
+[maxSurfVel, ImaxSurfVel] = max(surfVelMeans);
+[linStartSurfVel, IlinStartSurfVel] = min(abs(surfVelMeans(1:ImaxSurfVel) - maxSurfVel*0.1));
+t_lf = t_airPIV(IlinStartSurfVel:ImaxSurfVel);
+surfVelFit = polyfit(t_lf,surfVelMeans(IlinStartSurfVel:ImaxSurfVel),1);
+A = surfVelFit(1);
+ySurfVelFit = polyval(surfVelFit,t_lf);
+D_msv98 = NaN(length(t_lf),1); % shear layer depth given by Melville,Shear,Veron 1998 for a linearly increasing surface velocity
+t_0 = -surfVelFit(2)/A;
+for n = 1:length(t_lf)
+    t_rel = t_lf(n)-t_0;
+    syms z
+    et = -z/(2*(CST.WATER_DVISCOSITY/CST.WATER_DENSITY*t_rel)^0.5);
+    D_msv98(n) = vpasolve(0.1 == ((1+2*et^2)*erfc(et)-2/(pi^0.5)*et*exp(-et^2)),z);
+end
 
 ax3_1 = axes(tlay);
 hold on
-ax3_1.Layout.Tile = 3;
+ax3_1.Layout.Tile = tileNum;
 ax3_1.Box = 'off';
-p3_1 = plot(ax3_1,manTimes,manSurfVels*100,'.','MarkerSize',20,'Color',co(4,:),'DisplayName','Manual $U_{surf}$');
 p3_2 = plot(ax3_1,t_airPIV,surfVelMeans*100,'-','LineWidth',3,'Color',co(4,:),'DisplayName','Automated $U_{surf}$');
+s = sprintf("Linear Fit ($dU_{surf}/dt = %.2f\\ \\mathrm{cm/s^2}$)",100*surfVelFit(1));
+p3_3 = plot(ax3_1,t_airPIV(IlinStartSurfVel:ImaxSurfVel),ySurfVelFit*100,'--','LineWidth',3,'Color',co(4,:),'DisplayName',s);
+if withMan
+ p3_1 = plot(ax3_1,manTimes,manSurfVels*100,'o','MarkerSize',10,'MarkerEdgeColor','k','MarkerFaceColor',co(4,:),'DisplayName','Manual $U_{surf}$');
+end
 set(ax3_1,'FontSize',18)
 set(ax3_1,'TickLabelInterpreter','latex')
 set(ax3_1,'XLim',trange)
@@ -451,7 +538,7 @@ ylabel(ax3_1,'$U_{surf}$ (cm/s)','Interpreter','latex')
 ax3_1.YColor = co(4,:);
 
 ax3_2 = axes(tlay);
-ax3_2.Layout.Tile = 3;
+ax3_2.Layout.Tile = tileNum;
 ax3_2.Color = 'none';
 ax3_2.YAxis.Visible = 'off';
 hold on
@@ -465,23 +552,31 @@ set(ax3_2,'TickLabelInterpreter','latex')
 hold off
 
 ax3_3 = axes(tlay);
-ax3_3.Layout.Tile = 3;
+ax3_3.Layout.Tile = tileNum;
 hold on
 ax3_3.Color = 'none';
 ax3_3.Box = 'off';
 ax3_3.YAxisLocation = 'right';
 ax3_3.XAxis.Visible = 'off';
-p3_3 = plot(ax3_3,manTimes,manShearDepths*100,"^",'MarkerSize',10,'Color',co(5,:),'MarkerFaceColor',co(5,:),'DisplayName','Manual Shear Layer Depth');
+p3_5 = plot(ax3_3,t_airPIV,-shearLayerDepths*100,'-','LineWidth',3,'Color',co(5,:),'DisplayName','Automated $D_{SL}$');
+p3_6 = plot(ax3_3,t_lf,D_msv98*100,'--','LineWidth',3,'Color',co(5,:),'DisplayName','Melville, Shear, Veron (1998) $D_{SL}$');
+if withMan
+    p3_4 = plot(ax3_3,manTimes,manShearDepths*100,"^",'MarkerSize',10,'Color',co(5,:),'MarkerEdgeColor','k','MarkerFaceColor',co(5,:),'DisplayName','Manual $D_{SL}$');
+end
 ylabel(ax3_3,{'Shear Layer Depth'; '(cm)'},'Interpreter','latex')
 ax3_3.YColor = co(5,:);
-set(ax3_3,'FontSize',18,'TickLabelInterpreter','latex')
-
-legend([p3_1,p3_2 p3_3],'Interpreter','latex','Location', 'northwest')
+set(ax3_3,'FontSize',18,'TickLabelInterpreter','latex','XLim',trange,'YLim',[-2.3,0])
+if withMan
+    legend([p3_1, p3_2, p3_3, p3_4,p3_5,p3_6],'Interpreter','latex','Location', 'northwest')
+else
+    legend([p3_2, p3_3,p3_5,p3_6],'Interpreter','latex','Location', 'northwest')
+end
 
 % Tile 4: Surface Area
+tileNum = tileNum + 1;
 ax4_1 = axes(tlay);
 hold on
-ax4_1.Layout.Tile = 4;
+ax4_1.Layout.Tile = tileNum;
 ax4_1.Box = 'off';
 A_surf = zeros(1,length(t));
 for n = 1:length(t)
@@ -497,10 +592,10 @@ xlabel(ax4_1,'Time (s)','Interpreter','latex')
 ylabel(ax4_1,{'$\mathrm{Surface\ Area}$'; '$\mathrm{Increase\ (\%)}$'},'Interpreter','latex')
 set(ax4_1,'FontSize',18)
 set(ax4_1,'TickLabelInterpreter','latex')
-set(ax4_1, 'YLim',[0,4],'XLim',trange)
+set(ax4_1, 'YLim',[0,3],'XLim',trange)
 
 ax4_2 = axes(tlay);
-ax4_2.Layout.Tile = 4;
+ax4_2.Layout.Tile = tileNum;
 ax4_2.Color = 'none';
 ax4_2.YAxis.Visible = 'off';
 hold on
@@ -513,7 +608,11 @@ ax4_2.XAxis.Color = [0.5,0.5,0.5];
 set(ax4_2,'TickLabelInterpreter','latex')
 set(ax4_2, 'YLim',[0,0.05],'XLim',trange)
 
-linkaxes([ax1_1,ax1_2,ax2_1,ax2_2,ax2_3, ax3_1, ax3_2, ax3_3, ax4_1, ax4_2],'x')
+if withAir
+    linkaxes([ax1_1,ax1_2,ax2_1,ax2_2,ax2_3, ax3_1, ax3_2, ax3_3, ax4_1, ax4_2],'x')
+else
+    linkaxes([ax1_1,ax1_2, ax3_1, ax3_2, ax3_3, ax4_1, ax4_2],'x')
+end
 
 %% Fit growth rate to initial wavelet growth stage
 %For ExpAW5R2
@@ -521,8 +620,8 @@ linkaxes([ax1_1,ax1_2,ax2_1,ax2_2,ax2_3, ax3_1, ax3_2, ax3_3, ax4_1, ax4_2],'x')
 % tfit_f = 29.58;
 
 %For ExpAW4R2
-tfit_i = 32.5;
-tfit_f = 35.5;
+tfit_i = 28;
+tfit_f = 32;
 
 ir = [0,0];
 [~,i] = min(abs(t-tfit_i));
@@ -563,7 +662,7 @@ imagesc(kspec_mag.^2/(nX-1)*mpp/(2*pi),'XData',2*pi*(ppm/nX*(0:nX-1)),'YData',t,
 hold on
 set(gca,'FontSize',24,'TickLabelInterpreter','latex')
 xlim([0,500])
-ylim([32,36])
+ylim([26,30])
 xlabel('k ($\mathrm{m^{-1}}$)','Interpreter','latex')
 ylabel('time (s)','Interpreter','latex')
 colormap gray
@@ -612,14 +711,14 @@ hold on
 xlabel('x (m)','Interpreter','latex')
 ylabel('t (s)','Interpreter','latex')
 
-
+% s = sprintf('%.4f (PN%.2f)',0:spp:t(end),1:t(end)/spp)
 set(gca,'DataAspectRatio',[1*mpp 1/dydt 1])
-set(gca, 'ytick', 0:spp:t(end),'TickLabelInterpreter','latex');
+set(gca, 'ytick', 0:spp:t(end),'TickLabelInterpreter','latex','YTickLabel',compose("%.4f (PN %d)",(0:spp:t(end))',(0:1:round(t(end)/spp))'));
 set(gca, 'xtick', 0:0.02:x(end));
 set(gca,'FontSize',24)
 colormap gray
 
-ylim([34,35]);
+ylim([0,1]);
 yl = ylim;
 %s = DataPath(end-23:end-1) + " " + frames(1) + " to " + frames(end);
 il = [0,0];
