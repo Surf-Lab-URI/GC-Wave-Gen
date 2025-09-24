@@ -5,8 +5,8 @@ ROOTPath = '/media/surflab/Working24/ExpAW/';
 
 ExpDir = dir([ROOTPath 'Exp*']); % Directory with all the experiments
 
-for i = 4 % ExpNumber
-runNum = 2;
+for i = [1 2 4 5 6 7] % ExpNumber
+runNum = 5;
 
 ExpAW = ExpDir(i).name(6);
 Acc = ExpDir(i).name(11:14);
@@ -45,28 +45,29 @@ load Norm_PIV.mat
 
 PIVAirDir = dir([LoadPath 'PIV Air/' '*.raw']);
 PIVWaterDir = dir([LoadPath 'PIV Water/' '*.raw']);
-PIVSurf_LFV_Dir = dir([LoadPath 'PIVSurf Air - LFV/' '*.raw']);
+% PIVSurf_LFV_Dir = dir([LoadPath 'PIVSurf Air - LFV/' '*.raw']);
 FI = 0;
-LI = min(length(PIVWaterDir)-1,length(PIVAirDir)-1);
+LI = length(PIVWaterDir)-1;
 image_index = FI+1:2:LI;
 
-parfor idx = 1:length(image_index)
+parfor idx = 1:length(image_index) 
+    try
     CST = load('CST.mat');
 
     pair_index = (image_index(idx)+1)/2;
     
-    PIV1Dir_temp = PIVAirDir;
+    % PIV1Dir_temp = PIVAirDir;
     PIV2Dir_temp = PIVWaterDir;
-    SurfDir_temp = PIVSurf_LFV_Dir;
-    ImageNum_Air1 = PIV1Dir_temp(image_index(idx)).name(max(strfind(PIV1Dir_temp(image_index(idx)).name,'_'))+1:length(PIV1Dir_temp(image_index(idx)).name)-4);
-    ImageNum_Air2 = PIV1Dir_temp(image_index(idx)+1).name(max(strfind(PIV1Dir_temp(image_index(idx)+1).name,'_'))+1:length(PIV1Dir_temp(image_index(idx)+1).name)-4);
+    SurfDir_temp = PIVWaterDir;
+    % ImageNum_Air1 = PIV1Dir_temp(image_index(idx)).name(max(strfind(PIV1Dir_temp(image_index(idx)).name,'_'))+1:length(PIV1Dir_temp(image_index(idx)).name)-4);
+    % ImageNum_Air2 = PIV1Dir_temp(image_index(idx)+1).name(max(strfind(PIV1Dir_temp(image_index(idx)+1).name,'_'))+1:length(PIV1Dir_temp(image_index(idx)+1).name)-4);
     
     ImageNum_Water1 = PIV2Dir_temp(image_index(idx)).name(max(strfind(PIV2Dir_temp(image_index(idx)).name,'_'))+1:length(PIV2Dir_temp(image_index(idx)).name)-4);
     ImageNum_Water2 = PIV2Dir_temp(image_index(idx)+1).name(max(strfind(PIV2Dir_temp(image_index(idx)+1).name,'_'))+1:length(PIV2Dir_temp(image_index(idx)+1).name)-4);
     
     
     PairNum = SurfDir_temp(pair_index).name(max(strfind(SurfDir_temp(pair_index).name,'_'))+1:length(SurfDir_temp(pair_index).name)-4)
-    
+    % try
     imagename = [LoadPath 'PIVSURF Water/' expName '_' runName '_PIVSURF Water_' ImageNum_Water1 '.raw'];
     [IM1] = load_Image_IOCoreView_12MP(imagename);
     % Remove Bad Pixels and interpolate
@@ -190,6 +191,7 @@ parfor idx = 1:length(image_index)
     SaveSurfWaterPath = [WaterPath 'Surfaces/'];
     
     if ~exist(SaveSurfWaterPath, 'dir')
+        system(['chmod 777 ' DataPath]);
         mkdir(SaveSurfWaterPath);
     end
     %%%% Water
@@ -200,7 +202,7 @@ parfor idx = 1:length(image_index)
     SurfRes_Water1 = struct();
     SurfRes_Water2 = struct();
     
-    try
+    
         %%% Surface 1
         % "Pixel Resolution"
         FiltLength = 1000;
@@ -310,10 +312,10 @@ parfor idx = 1:length(image_index)
     
     
     catch
-    
+
         disp(['NO SURFACE WATER AVAILABLE for Pair ' PairNum ' : ']);
         CST.isSurfWater = 0;
-    
+
     end
 
 end
