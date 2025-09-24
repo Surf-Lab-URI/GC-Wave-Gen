@@ -123,8 +123,11 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
         %% Parameters
         IntrWndw_A = [128 64 32 16 8]; %[64 32 16 8];
         GrdSpc_A = [64 32 16 8 4]; %[32 16 8 4];
-        IntrWndw_W = [[256 192 128 96 64 48 32 16 8]*8 32 16 8];%[[256 64 32 16 8]*8 16 8];
-        GrdSpc_W = [[128 96 64 48 32 24 16 8 4]*8 16 8 4]; %[[64 32 16 8 4]*8 8 4];
+        % IntrWndw_W = [[64 32 16 8]*8 32 16 8];%[256 128 64 32 16 8];%[[256 64 32 16 8]*8 16 8];
+        % GrdSpc_W =[[4 4 4 4]*8 16 8 4]; %[128 64 32 16 8 4]; %[[64 32 16 8 4]*8 8 4];
+        IntrWndw_W = [256 128 64 32 16 8];
+        GrdSpc_W = [128 64 32 16 8 4];
+
 
         CST.DX = 40.126d-06; % meters per pixel (~40 micron/pix) in PIV Air pixel resolution
         CST.DX_W = 41.242d-6; % meters per pixel (~41 micron/pix) in PIV Water pixel resolution
@@ -167,10 +170,10 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
             end
         catch
         end
-        %% Processing frames
+        %% Processing fframes
         image_index = FI+1:2:LI;
 
-        for idx = 433%330%866/2%720/2%numel(image_index) % Main Loop
+        for idx = 0400%330%866/2%720/2%numel(image_index) % Main Loop
 
             % Indexes for images
             pair_index = (image_index(idx)+1)/2;
@@ -420,7 +423,8 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
                 else
                     % [CompVelWater] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(PIVWater1_CamAngle, PIVWater1_CamAngle, Mask1_W, Mask2_W, Mask1_W, IntrWndw_W, GrdSpc_W, Uorb_W1,Vorb_W1);
 
-                    [CompVelWater] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(PIV1_W, PIV2_W, Mask1_W, Mask2_W, Mask1_W, IntrWndw_W, GrdSpc_W, Uorb_W1*0,Vorb_W1*0);
+                    %[CompVelWater] =  ComputeVelocities_Quick_NoFilt_Water_InitVelOrb(PIV1_W, PIV2_W, Mask1_W, Mask2_W, Mask1_W, IntrWndw_W, GrdSpc_W, Uorb_W1*0 + 0e-2*CST.DT_W/CST.DX_W,Vorb_W1*0);
+                    [CompVelWater] =  ComputeVelocities_Quick_NoFilt_Deform_Water(PIV1_W, PIV2_W, Mask1_W, Mask2_W, IntrWndw_W, GrdSpc_W);
 
                 
                     figure(20)
@@ -429,9 +433,9 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
                     hold on
                     %manual results
                     % x = 2100 to 2600 PairNum 0432 exp5 run 2
-                    u_man = [1.69e-02, 0.02624490909, 0.02624490909, 0.02624490909, 0.1181020909, 0.1106035455, 0.2005860909, 0.1612187273, 0.02811954545, 0.007498545455];
-                    z_man = [-3.50E-02,-3.39E-02 -3.41E-02 -3.39E-02 -3.09E-02 -3.10E-02 -2.84E-02 -3.02E-02 -3.33E-02 -3.72E-02];
-                    
+                    % u_man = [1.69e-02, 0.02624490909, 0.02624490909, 0.02624490909, 0.1181020909, 0.1106035455, 0.2005860909, 0.1612187273, 0.02811954545, 0.007498545455];
+                    % z_man = [-3.50E-02,-3.39E-02 -3.41E-02 -3.39E-02 -3.09E-02 -3.10E-02 -2.84E-02 -3.02E-02 -3.33E-02 -3.72E-02];
+                     
                     % x = 3000 to 3500 PairNum 0259 exp5 run 2
                     % u_man = [0.0	0	0.01312245455	0.01312245455	0.01312245455	0.009373181818	0.007498545455	0.009373181818	0.01124781818	0.01312245455];
                     % z_man = [-4.40E-02	-3.57E-02	-3.39E-02	-3.19E-02	-3.10E-02	-3.01E-02	-2.94E-02	-2.88E-02	-2.80E-02	-3.23E-02];
@@ -445,8 +449,8 @@ for i = 5%:length(ExpDir) % Loop on the number of experiments
                     % z_man = [-3.59E-02 -3.75E-02 -3.21E-02 -2.99E-02 -3.07E-02 -2.86E-02 -3.08E-02 -3.47E-02 -3.36E-02];
 
                     % x = 3000 to 3500 PairNum 0399 exp5 run 2
-                    % u_man = [7.50E-03 0.01312245455 0.02437027273 0.1312245455 0.1330991818 0.1349738182 0.1199767273 0.1330991818 0.1349738182 0.04874054545 0.1330991818];
-                    % z_man = [-0.035736193 -0.03464328 -0.032766769 -0.030147902 -0.029405546 -0.028539464 -0.029591135 -0.028786916 -0.029343683 -0.030271628 -0.029343683];
+                    u_man = [7.50E-03 0.01312245455 0.02437027273 0.1312245455 0.1330991818 0.1349738182 0.1199767273 0.1330991818 0.1349738182 0.04874054545 0.1330991818];
+                    z_man = [-0.035736193 -0.03464328 -0.032766769 -0.030147902 -0.029405546 -0.028539464 -0.029591135 -0.028786916 -0.029343683 -0.030271628 -0.029343683];
                     plot(u_man,z_man,'.r','DisplayName','manual','MarkerSize',25)
                     legend('Location', 'southeast','Interpreter','latex')
                     s = sprintf('%s %s PairNum %s, x = %d to %d pixels (%.2f to %.2f cm)',expName(1:6),runName,PairNum,xrange(1), xrange(2), xrange(1)*CST.DX_W*1e2, xrange(2)*CST.DX_W*1e2);
