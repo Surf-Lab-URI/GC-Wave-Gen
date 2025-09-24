@@ -8,7 +8,7 @@ ROOTPath = '/media/surflab/Working24/ExpAW/';
 ExpDir = dir([ROOTPath 'Exp*']); % Directory with all the experiments
 
 i = 5; % ExpNumber
-runNum = 3;
+runNum = 4;
 
 ExpAW = ExpDir(i).name(6);
 Acc = ExpDir(i).name(11:14);
@@ -170,73 +170,7 @@ for framesCtr = 1:length(frames)
     end
 end
 toc
-%% Plot variance of eta, eta_x. Plot surface area.
-t = zeros(1,nF);
-t(1) = floor(frames(1)/2)*spp + mod(frames(1),2)*dt_pair;
-for i = 2:nF
-    if mod(frames(i),2)==1
-        t(i) = t(i-1)+dt_pair;
-    else
-        t(i) = t(i-1)+spp-dt_pair;
-    end
-end
 
-
-eta = (fYs-mean(fYs(1:20,:),'all'))*mpp;
-x_eta = fXs*mpp;
-eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
-
-eta_x = diff(eta/mpp,1,2);
-
-eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
-
-figure(4)
-ax1_1 = subplot(3,1,1);
-yyaxis left
-plot(t,eta_var,'LineWidth',4)
-hold on
-xlabel('Time (s)','Interpreter','latex')
-ylabel('$\mathrm{Var}[\eta]\ \mathrm{(m^2)}$','Interpreter','latex')
-set(gca,'FontSize',24)
-set(gca,'TickLabelInterpreter','latex')
-ylim([0,2.5e-7])
-s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
-title(s,'Interpreter','latex')
-legend
-
-% ax2 = subplot(3,1,2);
-yyaxis right
-plot(t,eta_x_var,'LineWidth',4)
-hold on
-xlabel('Time (s)','Interpreter','latex')
-ylabel('$\mathrm{Var}[\eta_x]$','Interpreter','latex')
-set(gca,'FontSize',24)
-set(gca,'TickLabelInterpreter','latex')
-xlim([26,38])
-ylim([0,0.05])
-% legend
-
-%Calculate Surface Area
-A_surf = zeros(1,length(t));
-for n = 1:length(t)
-    for i = 1:(size(eta,2)-1)
-        A_surf(n) = A_surf(n) + ((eta(n,i+1) - eta(n,i))^2 + (x_eta(n,i+1) - x_eta(n,i))^2).^0.5;
-    end
-end
-
-
-ax4_1 = subplot(3,1,3);
-l_interface = x_eta(1,end) - x_eta(1,1);
-plot(t,(A_surf - l_interface)/l_interface*100,'LineWidth',4)
-% plot(t,A_surf,'LineWidth',4)
-hold on
-xlabel('Time (s)','Interpreter','latex')
-ylabel('$\mathrm{Surface\ Area\ Increase\ (\%)}$','Interpreter','latex')
-set(gca,'FontSize',24)
-set(gca,'TickLabelInterpreter','latex')
-linkaxes([ax1_1,ax1_2,ax4_1],'x')
-xlim([24,38])
-ylim([0,4])
 %% FULL SYNOPSIS: Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 1: Calculate eta stats
 trange = [20, 37];
 PairNumRange = trange/spp;
@@ -256,7 +190,7 @@ etaMeanPIVW = mean(PIVW_PIVSurfW_Surfaces*CST.DX_W, 'all','omitmissing');
 
 eta = (fYs-mean(fYs(1:20,:),'all'))*mpp;
 eta = detrend(eta);
-% eta = highpass(eta',4,1/mpp,Steepness=0.999999)';
+eta = highpass(eta',4,1/mpp,Steepness=0.999999)';
 x_eta = fXs*mpp;
 eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
 
@@ -341,7 +275,7 @@ co(5,:) = [0.1 0.4 0.3];
 
 % Tile 1, eta_var
 % Start and end times for the initial growth phase exponential fit
-if runNum == 2 || runNum == 3
+if runNum == 2 || runNum == 4
     switch ExpAW
         case '1'
             tfit_i = 43;
@@ -614,37 +548,6 @@ else
     linkaxes([ax1_1,ax1_2, ax3_1, ax3_2, ax3_3, ax4_1, ax4_2],'x')
 end
 
-%% Fit growth rate to initial wavelet growth stage
-%For ExpAW5R2
-% tfit_i = 27;
-% tfit_f = 29.58;
-
-%For ExpAW4R2
-tfit_i = 28;
-tfit_f = 32;
-
-ir = [0,0];
-[~,i] = min(abs(t-tfit_i));
-ir(1) = i;
-[~,i] = min(abs(t-tfit_f)); 
-ir(2) = i;
-ir
-eta_var_fit = fit(t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'exp1')
-% figure
-% plot(eta_var_fit,t(ir(1):ir(2))',eta_var(ir(1):ir(2)))
-
-figure(3)
-hold on
-subplot(3,1,1)
-s = sprintf('Points %.2f s to %.2f s',tfit_i,tfit_f);
-p1 = plot(t(ir(1):ir(2))',eta_var(ir(1):ir(2)),'.k', 'MarkerSize',15,'DisplayName',s)
-
-fit_line_t = (t(ir(1)):0.01:t(ir(2)))';
-fit_line = eta_var_fit.a.*exp(fit_line_t.*eta_var_fit.b);
-s = sprintf('Fit %.2f s to %.2f s, Growth Rate %.2f 1/s',tfit_i,tfit_f,eta_var_fit.b);
-p2 = plot(fit_line_t, fit_line, '-r', 'LineWidth',3,'DisplayName',s)
-legend([p1,p2],'Interpreter','latex')
-
 %% Plot Wavenumber Spectrum
 nX = size(eta,2);
 ppm = 1/mpp;
@@ -653,7 +556,7 @@ kspec_mag = abs(fft(eta-mean(eta,2),nX,2));
 
 %Calculate contribution to total variance by each wavenumber, normalized by wavenumber bandwidth
 %Sum of kspec_mag_n*(k step size) = kspec_mag_n*(2*pi/nX/mpp) is equal to
-%the tocal variance
+%the total variance
 kspec_vareta_n = kspec_mag.^2/(nX-1)*mpp/(2*pi); 
 
 figure(13)
@@ -662,7 +565,7 @@ imagesc(kspec_mag.^2/(nX-1)*mpp/(2*pi),'XData',2*pi*(ppm/nX*(0:nX-1)),'YData',t,
 hold on
 set(gca,'FontSize',24,'TickLabelInterpreter','latex')
 xlim([0,500])
-ylim([26,30])
+ylim([22,30])
 xlabel('k ($\mathrm{m^{-1}}$)','Interpreter','latex')
 ylabel('time (s)','Interpreter','latex')
 colormap gray
@@ -673,6 +576,55 @@ c.Label.FontSize = 24;
 c.TickLabelInterpreter = 'latex';
 s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
 title(s,'Interpreter','latex')
+%% Plot dispersion relation for a certain time interval
+T_man = (22.8843-22.3671+23.1602-22.6084)/2;
+g = 9.81;
+sig_man = 2*pi/T_man;
+dt_man = 23.1602-22.8843;
+dx_man = 0.267194-0.0339593;
+lambda_man = dx_man*T_man/dt_man;
+
+
+is = 385*2:450*2;%328*2-50:328*2+50;
+sigma = 1:0.1:30;
+k = 1:50;
+x = x_eta(1,:);
+eta_dm = eta - mean(eta,2,'omitmissing');
+sig_spec = nufft(eta_dm(is,:),t(is),sigma/(2*pi),1);
+dr = nufft(nufft(eta_dm(is,:),t(is),sigma/(2*pi),1),x,k/(2*pi),2);
+figure(17)
+imagesc(k, sigma, abs(dr))
+hold on
+plot(k,sqrt(g*k),'-r','LineWidth',3,'DisplayName','Gravity wave dispersion relation');
+plot(2*pi/lambda_man,sig_man,'^','MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',25,'DisplayName','Manual estimate of frequency and wavenumber')
+legend('Interpreter','latex')
+set(gca,'FontSize',20,'TickLabelInterpreter','latex')
+xlabel('k (rad/m)','Interpreter','latex');
+ylabel('$\omega$ (rad/s)', 'Interpreter','latex');
+c = colorbar;
+colormap gray;
+c.Label.Interpreter = 'latex';
+c.TickLabelInterpreter = 'latex';
+c.Label.String = '2D FFT Intensity (m)';
+st = sprintf('$\\eta$ from $t =$ %.4f s to %.4f s, spatially de-meaned at each time step, for %s',t(is(1)),t(is(end)),[expRunName(1:6),' ',expRunName(end-4:end-1)]);
+title(st,'Interpreter','latex');
+hold off
+figure(18)
+imagesc(x,sigma,real(sig_spec))
+figure(19)
+imagesc(x,t(is),eta(is,:))
+hold on
+set(gca,'FontSize',20,'TickLabelInterpreter','latex')
+st = sprintf('$\\eta$ from $t =$ %.4f s to %.4f s for %s',t(is(1)),t(is(end)),[expRunName(1:6),' ',expRunName(end-4:end-1)]);
+title(st,'Interpreter','latex')
+xlabel('x (m)','Interpreter','latex');
+ylabel('t (s)','Interpreter','latex');
+c = colorbar;
+colormap gray;
+c.TickLabelInterpreter = 'latex';
+c.Label.Interpreter = 'latex';
+c.Label.String = '$\eta$ (m)';
+hold off;
 %% Plot initial growth rate spectrum
 
 growthrates = zeros(1,nX);
