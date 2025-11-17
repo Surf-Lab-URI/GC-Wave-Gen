@@ -1,5 +1,6 @@
 % Script for generating images of the free surface to be assembled into a
 % video. Use ffmpeg to make a video with a command like: ffmpeg -start_number 100  -framerate 3 -i ExpLCL_1_03_Pivsurf_%03d.jpg -frames:v 60 -vf "scale=1920:1080" -c:v libx264 -r 3 -pix_fmt yuv420p output2.mp4
+% Expects dir ./videoframes
 
 clear
 LONG = '/media/surflab/LC_Working24/LC/FabMarcNovDec2014/data/Longitudinal/PIVdt10ms_IRlas1_8hz/';
