@@ -7,8 +7,8 @@ ROOTPath = '/media/surflab/Working24/ExpAW/';
 
 ExpDir = dir([ROOTPath 'Exp*']); % Directory with all the experiments
 
-i = 5; % ExpNumber
-runNum = 4;
+i = 1; % ExpNumber
+runNum = 2;
 
 ExpAW = ExpDir(i).name(6);
 Acc = ExpDir(i).name(11:14);
@@ -146,7 +146,7 @@ else
     toc
 end
 %% Assemble composite image for hovmoller plot
-tic
+tic 
 CompImg = NaN(ceil(DeltaT*dydt),4176);
 for framesCtr = 1:length(frames)
     idx = frames(framesCtr);
@@ -190,7 +190,7 @@ etaMeanPIVW = mean(PIVW_PIVSurfW_Surfaces*CST.DX_W, 'all','omitmissing');
 
 eta = (fYs-mean(fYs(1:20,:),'all'))*mpp;
 eta = detrend(eta);
-eta = highpass(eta',4,1/mpp,Steepness=0.999999)';
+% eta = highpass(eta',4,1/mpp,Steepness=0.999999)';
 x_eta = fXs*mpp;
 eta_var = sum((eta-mean(eta,2)).^2,2)/(size(eta,2)-1);
 
@@ -199,7 +199,7 @@ eta_x = diff(eta/mpp,1,2);
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
 %% FULL SYNOPSIS: Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 2: Calculate Air PIV stats
-withAir = false;
+withAir = true;
 
 PairNums = floor(t(1)/spp):floor(t(end)/spp);
 
@@ -275,7 +275,7 @@ co(5,:) = [0.1 0.4 0.3];
 
 % Tile 1, eta_var
 % Start and end times for the initial growth phase exponential fit
-if runNum == 2 || runNum == 4
+if runNum == 2 || runNum == 3
     switch ExpAW
         case '1'
             tfit_i = 43;
@@ -300,6 +300,9 @@ if runNum == 2 || runNum == 4
             tfit_f = 32;
     end
 end
+
+% tfit_i = 32.5;
+% tfit_f = 35.2;
 
 ir = [0,0];
 [~,i] = min(abs(t-tfit_i));
@@ -377,6 +380,7 @@ legend(ax1_1,[p1_3,p1_4],'Interpreter','latex','Location','northwest')
 hold off
 
 if withAir
+    u_filtWndw = 50;
     %Tile 2: Wind Speed
     tileNum = tileNum + 1;
     ax2_1 = axes(tlay);
@@ -388,13 +392,45 @@ if withAir
     set(ax1_1,'FontSize',18)
     set(ax1_1,'TickLabelInterpreter','latex')
     set(ax1_1, 'YLim',[0,2.5e-7],'XLim',trange)
-    p2_1 = plot(ax2_1,t_airPIV, u_mean,'LineWidth',3,'Color',co(6,:),'DisplayName','$\overline{U}_{air}\ \mathrm{(m/s)}$');
+    p2_1 = plot(ax2_1,t_airPIV, movmean(u_mean,1,'omitmissing'),'-','LineWidth',3,'Color',co(6,:),'DisplayName','$\overline{U}_{air}\ \mathrm{(m/s)}$');
     ylabel(ax2_1,'$\overline{U}_{air}\ \mathrm{(m/s)}$','Interpreter','latex')
     set(ax2_1,'FontSize',18)
     set(ax2_1,'TickLabelInterpreter','latex')
     set(ax2_1, 'YLim',[0,6],'XLim',trange)
     ax2_1.Box = 'off';
+    
+
+
+    u_mean_filt = movmean(u_mean,u_filtWndw,'omitmissing');
+    [umax, i_umax] = max(u_mean_filt);
+    umax
+    % [~,i_acc_f] = min(abs(u_mean_filt-0.9*umax));
+    % [~,i_acc_i] = min(abs(u_mean_filt-0.05*umax));
+    
+    i_acc_f = find(u_mean_filt > 0.9*umax);
+    i_acc_f = i_acc_f(1);
+    i_acc_i = find(u_mean_filt > 0.05*umax);
+    i_acc_i = i_acc_i(1);
+
+    t_airfit = t_airPIV(i_acc_i:i_acc_f);
+    u_airfit = u_mean(i_acc_i:i_acc_f);
+    t_airfit = t_airfit(isfinite(u_airfit));
+    u_airfit = u_airfit(isfinite(u_airfit));
+    airVelFit = polyfit(t_airfit,u_airfit',1)
+    air_acc = airVelFit(1);
+    s = sprintf("Linear Fit ($d\\overline{U}_{air}/dt = %.2f\\ \\mathrm{m/s^2}$), $t = %.2f$ to $%.2f$s",air_acc, t_airfit(1),t_airfit(end));
+    p2_4 = plot(ax2_1,t_airfit,polyval(airVelFit,t_airfit),'--','LineWidth',3,'Color',co(6,:),'DisplayName',s');
+    legend(p2_4,'Interpreter', 'latex','Location', 'northwest')
     hold off
+
+    % figure(5)   
+    % plot(t_airPIV(2:end),movmean(diff(movmean(u_mean,50,'omitmissing')),50)./diff(t_airPIV))
+    % hold on
+    % ylabel('Acceleration of $\overline{U}_{air}\ \mathrm{(m/s^2)}$','Interpreter','latex')
+    % xlabel('Time (s)')
+    % hold off
+
+    figure(4)
     
     ax2_2 = axes(tlay);
     ax2_2.Layout.Tile = tileNum;
@@ -440,10 +476,16 @@ if withMan
     manShearDepths = manStats{:,3}+etaMeanPIVW;
 end
 
-[maxSurfVel, ImaxSurfVel] = max(surfVelMeans);
+[maxSurfVel, ImaxSurfVel] = max(movmean(surfVelMeans,5));
+maxSurfVel
+disp("t at maxsurfvel (s): " + t_airPIV(ImaxSurfVel))
 [linStartSurfVel, IlinStartSurfVel] = min(abs(surfVelMeans(1:ImaxSurfVel) - maxSurfVel*0.1));
-t_lf = t_airPIV(IlinStartSurfVel:ImaxSurfVel);
-surfVelFit = polyfit(t_lf,surfVelMeans(IlinStartSurfVel:ImaxSurfVel),1);
+
+surfVelMeansFitMask = false(size(surfVelMeans));
+surfVelMeansFitMask(IlinStartSurfVel:ImaxSurfVel) = true;
+surfVelMeansFitMask = surfVelMeansFitMask & isfinite(surfVelMeans);
+t_lf = t_airPIV(surfVelMeansFitMask);
+surfVelFit = polyfit(t_lf,surfVelMeans(surfVelMeansFitMask),1);
 A = surfVelFit(1);
 ySurfVelFit = polyval(surfVelFit,t_lf);
 D_msv98 = NaN(length(t_lf),1); % shear layer depth given by Melville,Shear,Veron 1998 for a linearly increasing surface velocity
@@ -461,7 +503,7 @@ ax3_1.Layout.Tile = tileNum;
 ax3_1.Box = 'off';
 p3_2 = plot(ax3_1,t_airPIV,surfVelMeans*100,'-','LineWidth',3,'Color',co(4,:),'DisplayName','Automated $U_{surf}$');
 s = sprintf("Linear Fit ($dU_{surf}/dt = %.2f\\ \\mathrm{cm/s^2}$)",100*surfVelFit(1));
-p3_3 = plot(ax3_1,t_airPIV(IlinStartSurfVel:ImaxSurfVel),ySurfVelFit*100,'--','LineWidth',3,'Color',co(4,:),'DisplayName',s);
+p3_3 = plot(ax3_1,t_lf,ySurfVelFit*100,'--','LineWidth',3,'Color',co(4,:),'DisplayName',s);
 if withMan
  p3_1 = plot(ax3_1,manTimes,manSurfVels*100,'o','MarkerSize',10,'MarkerEdgeColor','k','MarkerFaceColor',co(4,:),'DisplayName','Manual $U_{surf}$');
 end
@@ -497,6 +539,7 @@ p3_6 = plot(ax3_3,t_lf,D_msv98*100,'--','LineWidth',3,'Color',co(5,:),'DisplayNa
 if withMan
     p3_4 = plot(ax3_3,manTimes,manShearDepths*100,"^",'MarkerSize',10,'Color',co(5,:),'MarkerEdgeColor','k','MarkerFaceColor',co(5,:),'DisplayName','Manual $D_{SL}$');
 end
+disp("Shear Layer Depth at max surf vel: " + shearLayerDepths(ImaxSurfVel)*100 + " cm")
 ylabel(ax3_3,{'Shear Layer Depth'; '(cm)'},'Interpreter','latex')
 ax3_3.YColor = co(5,:);
 set(ax3_3,'FontSize',18,'TickLabelInterpreter','latex','XLim',trange,'YLim',[-2.3,0])
@@ -520,7 +563,7 @@ for n = 1:length(t)
 end
 
 l_interface = x_eta(1,end) - x_eta(1,1);
-plot(ax4_1,t,(A_surf - l_interface)/l_interface*100,'LineWidth',3,'Color','k')
+p4_1 = plot(ax4_1,t,(A_surf - l_interface)/l_interface*100,'LineWidth',3,'Color','k','DisplayName', 'surface area')
 hold on
 xlabel(ax4_1,'Time (s)','Interpreter','latex')
 ylabel(ax4_1,{'$\mathrm{Surface\ Area}$'; '$\mathrm{Increase\ (\%)}$'},'Interpreter','latex')
@@ -585,7 +628,7 @@ dx_man = 0.267194-0.0339593;
 lambda_man = dx_man*T_man/dt_man;
 
 
-is = 385*2:450*2;%328*2-50:328*2+50;
+is = 328*2-50:328*2+50;%385*2:450*2;
 sigma = 1:0.1:30;
 k = 1:50;
 x = x_eta(1,:);
@@ -646,6 +689,258 @@ ylabel('growth rate of wavenumber contribution to Var[$\eta$] (1/s)','Interprete
 s = [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)];
 title(s,'Interpreter','latex')
 legend('Interpreter','latex')
+
+%% Determine Asymmetry of troughs
+P_threshold = 7;
+lambda_max = 4e-2; % asymmetry detection wavelength maximum.
+slopePThreshold = 0.1;
+
+slopeDiffMean = nan(1,length(t));
+slopeDiffMedian = nan(1, length(t));
+slopeDiffMode = nan(1,length(t)); 
+numTroughs = nan(1,length(t));
+for i = 1:length(t)
+    [TF, P] = islocalmin(-fYs(i,:));
+
+    % slopeMask = islocalmax(abs(diff(fYs(i,:))));
+    % steepPtsMask(1,:) = slopeMask & abs(diff(fYs(i,:))) >= slopeMin(1);
+    % steepPtsMask(2,:) = slopeMask & abs(diff(fYs(i,:))) >= slopeMin(2);
+    % steepPtsMask(3,:) = slopeMask & abs(diff(fYs(i,:))) >= slopeMin(3);
+    
+    minsMask = P > P_threshold;
+    imins = find(minsMask);
+    xmins = fXs(i,minsMask);
+    ymins = fYs(i,minsMask);
+
+
+    if ~isempty(ymins)
+        slope = -diff(fYs(i,:));
+        [slopeMins,slopeMinsP] = islocalmin(slope);
+        [slopeMaxs,slopeMaxsP] = islocalmax(slope);
+    
+        if mod(i,2) == 1
+            offset = round((i-1)/2*spp*dydt)+1-yLimits(1);
+            offset2 = round((i-1)/2*spp*dydt)+1;
+        else
+            offset = round(((i-2)/2*spp+dt_pair)*dydt)+1-yLimits(1);
+            offset2 = round(((i-2)/2*spp+dt_pair)*dydt)+1;
+        end
+
+        slopeDiffs = nan(1,length(ymins));
+        for j = 1:length(ymins)
+            foundSlopeMin = false;
+            foundSlopeMax = false;
+            k = imins(j);
+            troughSlopeMin = 0;
+            troughSlopeMax = 0;
+            while ~foundSlopeMin && k > 0 && imins(j)-k < lambda_max/2/mpp
+                if slopeMinsP(k) > slopePThreshold
+                    foundSlopeMin = true;
+                    troughSlopeMin = slope(k);
+                    plot(fXs(i,k)*mpp,(fYs(i,k)+offset)/dydt,'.k','MarkerSize',20)
+                end
+                k = k-1;
+            end
+    
+            k = imins(j);
+            while ~foundSlopeMax && k < length(slope) && k-imins(j) < lambda_max/2/mpp
+                if slopeMaxsP(k) > slopePThreshold
+                    foundSlopeMax = true;
+                    troughSlopeMax = slope(k);
+                    plot(fXs(i,k)*mpp,(fYs(i,k)+offset)/dydt,'.k','MarkerSize',20)
+                end
+                k = k+1;
+            end
+    
+            slopeDiff = abs(troughSlopeMax + troughSlopeMin);
+            slopeDiffText = sprintf('SlopeDiff %.2f',slopeDiff);
+            slopeDiffs(j) = slopeDiff;
+        end
+        slopeDiffMean(i) = mean(slopeDiffs);
+        slopeDiffMedian(i) = median(slopeDiffs);
+        slopeDiffMode(i) = mode(slopeDiffs);
+        numTroughs(i) = length(ymins);
+    end
+end
+
+
+figure(4)
+ax4_3 = axes(tlay);
+ax4_3.Layout.Tile = tileNum;
+hold on
+ax4_3.Color = 'none';
+ax4_3.Box = 'off';
+ax4_3.YAxisLocation = 'right';
+ax4_3.XAxis.Visible = 'off';
+p4_2 = plot(t,slopeDiffMean,'LineWidth',2,'Color',co(1,:),'DisplayName', '$$\Delta \eta_x$$ mean');
+p4_3 = plot(t,slopeDiffMedian,'LineWidth',2,'Color',co(2,:),'DisplayName', '$\Delta \eta_x$ median');
+p4_4 = plot(t,slopeDiffMode,'LineWidth',2,'Color',co(3,:),'DisplayName', '$\Delta \eta_x$ mode');
+
+ylabel(ax4_3,{'$\Delta \eta_x$ across troughs'},'Interpreter','latex')
+ax4_3.YColor = [0,0,0];
+set(ax4_3,'FontSize',18,'TickLabelInterpreter','latex','XLim',trange,'YLim',[0,0.4])
+legend([p4_1,p4_2,p4_3,p4_4],'Interpreter','latex','Location', 'northwest')
+linkaxes([ax1_1, ax4_3],'x')
+%% Plot hovemollerish thing V2: don't load everything all at once
+ti = 0;
+dtPlot = 0.5;
+tl = [ti, ti+dtPlot];
+P_threshold = 7;
+lambda_max = 4e-2; % asymmetry detection wavelength maximum.
+slopePThreshold = 0.1;
+slopeMin = [0.3,0.5,0.7];
+solitonsThreshold = [0.01, 0.03]; % difference between distances to adjacent trough, minimum distance to an adjacent trough.
+
+while true
+
+    
+    figure(2)
+    
+    x = (1:size(CompImg,2))*mpp;
+    y = 1:size(CompImg,1);
+    t = (y-1)/dydt;
+    
+    it = [0,0];
+    [~, it(1)] = min(abs(t-tl(1)));
+    [~, it(2)] = min(abs(t-tl(2)));
+    
+    
+    hold off
+    imagesc(CompImg(it(1):it(2),:),'XData',x,'YData',t(it(1):it(2)),[0,3])
+    hold on
+    
+    %s = DataPath(end-23:end-1) + " " + frames(1) + " to " + frames(end);
+    il = [0,0];
+    il(1) = floor(tl(1)/spp)*2 + min(floor(mod(tl(1),spp)/dt_pair),1)+1;
+    il(2) = floor(tl(2)/spp)*2 + min(floor(mod(tl(2),spp)/dt_pair),1)+1;
+    
+    s = sprintf('%s Frames %d to %d', [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)], frames(il(1)), frames(il(2)));
+    title(s,'Interpreter','latex')
+    xlabel('x (m)','Interpreter','latex')
+    ylabel('t (s)','Interpreter','latex')
+    
+    % s = sprintf('%.4f (PN%.2f)',0:spp:t(end),1:t(end)/spp)
+    set(gca,'DataAspectRatio',[1*mpp 1/dydt 1])
+    set(gca, 'ytick', (round(t(it(1))/spp)*spp):spp:(round(t(it(2))/spp)*spp),'TickLabelInterpreter','latex','YTickLabel',compose("%.4f (PN %d)",((round(t(it(1))/spp)*spp):spp:(round(t(it(2))/spp)*spp))',(round(t(it(1))/spp):1:round(t(it(2))/spp))'));
+    set(gca, 'xtick', 0:0.02:x(end));
+    set(gca,'FontSize',24)
+    colormap gray
+    
+    minPts = NaN(300,2);
+    cmp = 1;
+    for i = il(1):il(2)
+        [TF, P] = islocalmin(-fYs(i,:));
+
+        slopeMask = islocalmax(abs(diff(fYs(i,:))));
+        steepPtsMask(1,:) = slopeMask & abs(diff(fYs(i,:))) >= slopeMin(1);
+        steepPtsMask(2,:) = slopeMask & abs(diff(fYs(i,:))) >= slopeMin(2);
+        steepPtsMask(3,:) = slopeMask & abs(diff(fYs(i,:))) >= slopeMin(3);
+        
+        minsMask = P > P_threshold;
+        imins = find(minsMask);
+        xmins = fXs(i,minsMask);
+        ymins = fYs(i,minsMask);
+
+
+        if ~isempty(ymins)
+            slope = -diff(fYs(i,:));
+            [slopeMins,slopeMinsP] = islocalmin(slope);
+            [slopeMaxs,slopeMaxsP] = islocalmax(slope);
+
+            if mod(i,2) == 1
+                offset = round((i-1)/2*spp*dydt)+1-yLimits(1);
+                offset2 = round((i-1)/2*spp*dydt)+1;
+            else
+                offset = round(((i-2)/2*spp+dt_pair)*dydt)+1-yLimits(1);
+                offset2 = round(((i-2)/2*spp+dt_pair)*dydt)+1;
+            end
+
+            for j = 1:length(ymins)
+                foundSlopeMin = false;
+                foundSlopeMax = false;
+                k = imins(j);
+                troughSlopeMin = 0;
+                troughSlopeMax = 0;
+                while ~foundSlopeMin && k > 0 && imins(j)-k < lambda_max/2/mpp
+                    if slopeMinsP(k) > slopePThreshold
+                        foundSlopeMin = true;
+                        troughSlopeMin = slope(k);
+                        plot(fXs(i,k)*mpp,(fYs(i,k)+offset)/dydt,'.k','MarkerSize',20)
+                    end
+                    k = k-1;
+                end
+
+                k = imins(j);
+                while ~foundSlopeMax && k < length(slope) && k-imins(j) < lambda_max/2/mpp
+                    if slopeMaxsP(k) > slopePThreshold
+                        foundSlopeMax = true;
+                        troughSlopeMax = slope(k);
+                        plot(fXs(i,k)*mpp,(fYs(i,k)+offset)/dydt,'.k','MarkerSize',20)
+                    end
+                    k = k+1;
+                end
+
+                slopeDiff = abs(troughSlopeMax + troughSlopeMin);
+                slopeDiffText = sprintf('SlopeDiff %.2f',slopeDiff);
+                text(xmins(j)*mpp,(ymins(j)+offset)/dydt,slopeDiffText)
+                    
+            end
+        end
+        
+        solitonsMask = [false, abs(diff(diff(fXs(i,minsMask)))) > solitonsThreshold(1)/mpp, false];
+        solitonsMask = solitonsMask | [false, diff(fXs(i,minsMask))>solitonsThreshold(2)/mpp] | [diff(fXs(i,minsMask))>solitonsThreshold(2)/mpp, false];
+        if length(xmins) > 1
+            solitonsMask(1) = solitonsMask(1) | xmins(1)>solitonsThreshold(2)/mpp;
+            solitonsMask(end) = solitonsMask(end) | (fXs(end)-xmins(end) > solitonsThreshold(2)/mpp);
+
+            solitonXmins = xmins(solitonsMask);
+            solitonYmins = ymins(solitonsMask);
+        elseif ~isempty(xmins)
+            solitonsMask = true;
+            solitonXmins = xmins(solitonsMask);
+            solitonYmins = ymins(solitonsMask);
+        end
+    
+        if mod(i,2) == 1
+            offset = round((i-1)/2*spp*dydt)+1-yLimits(1);
+            offset2 = round((i-1)/2*spp*dydt)+1;
+        else
+            offset = round(((i-2)/2*spp+dt_pair)*dydt)+1-yLimits(1);
+            offset2 = round(((i-2)/2*spp+dt_pair)*dydt)+1;
+        end
+
+        plot(fXs(i,:)*mpp,(fYs(i,:)+offset)/dydt,'r')
+        
+        if ~isempty(xmins)
+            plot(fXs(i,minsMask)*mpp,(fYs(i,minsMask)+offset)/dydt,'.r','MarkerSize',10)
+            plot(fXs(i,steepPtsMask(1,:))*mpp,(fYs(i,steepPtsMask(1,:))+offset)/dydt,'.g','MarkerSize',10)
+            plot(fXs(i,steepPtsMask(2,:))*mpp,(fYs(i,steepPtsMask(2,:))+offset)/dydt,'.m','MarkerSize',20)
+            plot(fXs(i,steepPtsMask(3,:))*mpp,(fYs(i,steepPtsMask(3,:))+offset)/dydt,'.y','MarkerSize',20)
+            plot(solitonXmins*mpp,(solitonYmins+offset)/dydt,'.b','MarkerSize',10)
+        end
+    
+        minPts(cmp:cmp+length(fXs(i,minsMask))-1,:) = [fXs(i,minsMask)',offset2*ones(1,length(fXs(i,minsMask)))'];
+        cmp = cmp + length(fXs(i,minsMask));
+        hold on
+        % pause
+    end
+    minPts(any(isnan(minPts), 2), :) = [];
+    
+    ip = input('a for back, d for forward','s');
+    nip = str2double(ip);
+    scrollFrac = 0.5;
+    if ip == 'a'
+        tl(1) = max(0,tl(1)-dtPlot*scrollFrac);
+        tl(2) = tl(1) + dtPlot;
+    elseif ip == 'd'
+        tl(2) = min(t(end),tl(2)+dtPlot*scrollFrac);
+        tl(1) = tl(2) - dtPlot;
+    elseif ~isnan(nip) && nip >= 0 && nip < t(end)-dtPlot
+        tl(1) = nip;
+        tl(2) = tl(1)+dtPlot;
+    end
+    tl
+end
 %% Plot hovemollerish thing
 P_threshold = 10;
 
@@ -670,12 +965,12 @@ set(gca, 'xtick', 0:0.02:x(end));
 set(gca,'FontSize',24)
 colormap gray
 
-ylim([0,1]);
-yl = ylim;
+ylim([29,30]);
+tl = ylim;
 %s = DataPath(end-23:end-1) + " " + frames(1) + " to " + frames(end);
 il = [0,0];
-il(1) = floor(yl(1)/spp)*2 + min(floor(mod(yl(1),spp)/dt_pair),1);
-il(2) = floor(yl(2)/spp)*2 + min(floor(mod(yl(2),spp)/dt_pair),1);
+il(1) = floor(tl(1)/spp)*2 + min(floor(mod(tl(1),spp)/dt_pair),1);
+il(2) = floor(tl(2)/spp)*2 + min(floor(mod(tl(2),spp)/dt_pair),1);
 s = sprintf('%s Frames %d to %d', [DataPath(end-23:end-18), '\_', DataPath(end-16:end-10), '\_', DataPath(end-8:end-6), '\_', DataPath(end-4:end-1)], frames(il(1)), frames(il(2)));
 title(s,'Interpreter','latex')
 
@@ -707,7 +1002,6 @@ minPts(any(isnan(minPts), 2), :) = [];
 
 
 % plot(minPts(:,1),minPts(:,2),'r*') 
-
 %%
 troughImg = zeros(size(CompImg));
 idxs = sub2ind(size(troughImg), minPts(:,2),minPts(:,1));
