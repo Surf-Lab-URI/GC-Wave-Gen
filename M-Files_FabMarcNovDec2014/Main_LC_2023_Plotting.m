@@ -1,4 +1,5 @@
 clear
+clc
 LONG = '/media/surflab/LC_Working24/LC/FabMarcNovDec2014/data/Longitudinal/PIVdt10ms_IRlas1_8hz/';
 DIRS=dir(LONG);
 DIRS=DIRS(3:end);
@@ -51,75 +52,37 @@ end
 
 %%%%%% End of stuff added by Andy to quickly flip through frames.
 
-for image_pair_number = 105%123%image_pair_number=0:number_of_pair-1
+for image_pair_number = 123%123%image_pair_number=0:number_of_pair-1
 %PIV
 load([load_path '/PIVRaw/PIV/' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
 IM_a = imgPiv;
 load([load_path '/PIVRaw/PIV/' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat']); %replace ~ with path
 IM_b = imgPiv;
+
+[h, w] = size(IM_a);
  
 %PIV Surf
-load([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
-imgPivsurfa = imgPivsurf;
-load([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat']); %replace ~ with path
-imgPivsurfb = imgPivsurf;
+imSurfa = FindSurfaceCapillary([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat'], maskDims = size(IM_a)); 
 
-%Surface detection and Creating Masks
-U1 = [147 49;2024 57; 1995 1004; 161 999];
-X1 = [147 49; 2024 49; 2024 1004; 147 1004];
-T1 = fitgeotrans(U1,X1,'projective');
-d1=imwarp(imgPivsurfa,T1,'cubic');
-d2=imwarp(imgPivsurfb,T1,'cubic');
-
-d1=imresize(d1,176.9769/105.5880);%Resizing to match PIV
-d2=imresize(d2,176.9769/105.5880);%Resizing to match PIV
-s1=d1(30:3525,755:755+2047); %croping
-s2=d2(30:3525,755:755+2047);
-
-%%%%%OG Fabrice surface detection
-% imSurf1 = findSurface_simple_ext_force_2023((medfilt2(s1)), 1);
-% imSurf2 = findSurface_simple_ext_force_2023((medfilt2(s2)), 1);
-
-%%%%%Andy Crapper-optimized surface detection
-surfSigmas = [50 40 30 20 15];
-surfSteps = [50 40 30 5];
-SurfMask = 1;
-slopeDiffThreshold = 5;
-imSurfa = CrapperOptimized_FindSurface(s1, surfSigmas, surfSteps, 1, slopeDiffThreshold);
-imSurfa.surface = FiltSurf(imSurfa.surface_raw,200);
-imSurfb = CrapperOptimized_FindSurface(s2, surfSigmas, surfSteps, 1, slopeDiffThreshold);
-imSurfb.surface = FiltSurf(imSurfb.surface_raw,200);
+imSurfb = FindSurfaceCapillary([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat'], maskDims = size(IM_a));
 
 cl = [1,0.4,0.4];
 
 figure(5)
 hold off
-imagesc(s1,[0,300])
+imagesc(imSurfa.s,[0,300])
 hold on
-plot(imSurfa.surface, '-', 'Color', cl)
+plot(imSurfa.surfacePreOffset, '-', 'Color', cl)
 plot(imSurfa.surface_raw, '-r')
 daspect([1,1,1])
 
 figure(6)
 hold off
-imagesc(s2,[0,300])
+imagesc(imSurfb.s,[0,300])
 hold on
-plot(imSurfb.surface, '-', 'Color', cl)
+plot(imSurfb.surfacePreOffset, '-', 'Color', cl)
 plot(imSurfb.surface_raw, '-r')
 daspect([1,1,1])
-
-imSurfa.surface=imSurfa.surface-1716+287;
-imSurfb.surface=imSurfb.surface-1716+287;
-[h, w] = size(IM_a); %image height and width
-maska=ones(size(IM_a));
-maskb=ones(size(IM_a));
-for i=1:w
-    maska(1:round(imSurfa.surface(i)),i)=NaN;
-    maskb(1:round(imSurfb.surface(i)),i)=NaN;
-end
-warning off
-imSurfa.mask=maska;
-imSurfb.mask=maskb;
 
 figure(7)
 imagesc(IM_a,[0,300])
@@ -145,7 +108,7 @@ ylim([200,600])
 IntrWndw=[256 128 64 24 16 8];
 GrdSpc=   [128 64 32 12 8 4];
 % compVel = computeVelocities_marc_quick_nofilt(IM_a, IM_b, mask1, mask2, IntrWndw, GrdSpc);
-compVel = ComputeVelocities_Quick_NoFilt_Deform_Water(IM_a, IM_b, maska, maskb, IntrWndw, GrdSpc);
+compVel = ComputeVelocities_Quick_NoFilt_Deform_Water(IM_a, IM_b, imSurfa.mask, imSurfb.mask, IntrWndw, GrdSpc);
 compVel.DX=1/17697.69; %m per pix
 compVel.DT=10d-3; % sec per image pair -  DELTA_T= 10 milisec
 %% Plot Deformed Image Pair
@@ -167,6 +130,9 @@ ylim([200,600])
 figure(3)
 hold off
 imagesc((1:w)*compVel.DX, (1:h)*compVel.DX, compVel.delx.*compVel.mask*compVel.DX/compVel.DT)
+ybot = 200;
+% imagesc((1:w)*compVel.DX, (1:ybot*4)*compVel.DX, compVel.delx(1:ybot,:).*compVel.mask(1:ybot,:)*compVel.DX/compVel.DT)
+
 hold on
 colormap gray
 set(gca, 'TickLabelInterpreter','latex', 'FontSize', 20);
