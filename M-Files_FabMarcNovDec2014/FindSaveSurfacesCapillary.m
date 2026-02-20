@@ -52,7 +52,7 @@ matRun = matfile(runResultsfname,'Writable', true);
 pairs = cell(number_of_pair,1);
 
 tic
-for image_pair_number = 0:number_of_pair-1
+parfor image_pair_number = 0:number_of_pair-1
     pair = struct();
     aPath = [load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat'];
     bPath = [load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat'];
@@ -72,14 +72,24 @@ pps = 7.2; % pairs per second
 spp = 1/pps; % seconds per pair
 dt_pair = 10e-3; %delay between images in a pair
 t = nan(number_of_pair*2,1);
-surfs = nan(number_of_pair*2,length(pairs{1}.imSurfa.surface));
+surfs = nan(number_of_pair*2,length(pairs{1}.imSurfa.surfaceSurfImgScaled));
+surfsPIV = nan(number_of_pair*2,length(pairs{1}.imSurfa.surfacePIVImg));
+pairNum = nan(number_of_pair*2,1);
+paths = strings(number_of_pair*2,1);
 for image_pair_number = 0:number_of_pair-1
     t(image_pair_number*2 + 1) = 2*image_pair_number*spp;
     t(image_pair_number*2 + 2) = 2*image_pair_number*spp+dt_pair;
+    pairNum(image_pair_number*2 + 1) = image_pair_number;
+    pairNum(image_pair_number*2 + 2) = image_pair_number;
 
     if ~isempty(pairs{image_pair_number+1})
-        surfs(image_pair_number*2 + 1,:) = pairs{image_pair_number+1}.imSurfa.surface;
-        surfs(image_pair_number*2 + 2,:) = pairs{image_pair_number+1}.imSurfb.surface;
+        paths(image_pair_number*2 + 1) = pairs{image_pair_number+1}.imSurfa.path;
+        surfs(image_pair_number*2 + 1,:) = pairs{image_pair_number+1}.imSurfa.surfaceSurfImgScaled;
+        surfsPIV(image_pair_number*2 + 1,:) = pairs{image_pair_number+1}.imSurfa.surfacePIVImg;
+        paths(image_pair_number*2 + 2) = pairs{image_pair_number+1}.imSurfb.path;
+        surfs(image_pair_number*2 + 2,:) = pairs{image_pair_number+1}.imSurfb.surfaceSurfImgScaled;
+        surfsPIV(image_pair_number*2 + 2,:) = pairs{image_pair_number+1}.imSurfb.surfacePIVImg;
+
         fprintf('wrote image pair %d to surfs matrix\n',image_pair_number)
     else
         fprintf('No surface for image_pair_number = %d\n',image_pair_number)
@@ -91,7 +101,10 @@ x_eta = (0:(size(eta,1)-1))*dx;
 toc
 %% Make Struct to save surfs
 Surfs = struct();
+Surfs.paths = paths;
 Surfs.surfs = surfs;
+Surfs.surfsPIV = surfsPIV;
+Surfs.pairNum = pairNum;
 Surfs.dx = dx;
 Surfs.t = t;
 Surfs.pps = pps;
@@ -116,5 +129,7 @@ else
 end
 
 exps{ii}.Surfs = Surfs;
+exps{ii}.exp_name = exp_name;
+exps{ii}.number_of_pair = number_of_pair;
 matCamp.exps = exps;
 % end
