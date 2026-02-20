@@ -1,47 +1,68 @@
-function imSurf = FindSurfaceCapillary(path,NameValueArgs)
+function Surf = FindSurfaceCapillary(path,NameValueArgs)
     arguments
         path
-        NameValueArgs.maskDims = NaN; 
+        NameValueArgs.findMask = false; 
     end
-%FINDSURFACECAPILLARY Summary of this function goes here
-%   Detailed explanation goes here
+%FINDSURFACECAPILLARY Finds the surface in a surface image
+%   Takes as input a path and to the surface image. If you want want it to
+%   spit out a mask with dimensions of the PIV image that masks off the
+%   air, you can specify findMask = true as an arguement. The output struct
+%   has the following images:
+%       ImgScaledCroppedToPIV:  Surface image scaled and cropped to have 
+%                               the same dimensions as the PIV image
+%       ImgScaledToPIVSmallCrop: Surface image scaled to have the same
+%                           resolution as the PIV image, but not the same
+%                           dimensions. This image captures more of the
+%                           surface than the PIV image, although it is
+%                           cropped slightly to eliminate artifacts of lens
+%                           distortion correction. Surface detection
+%                           is run on this image with output 
+%                           surfaceSurfImgScaled. The surface is then
+%                           cropped to produce surfacePIVImg, which has the
+%                           same dimensions as the PIV image. 
+%        ImgScaledToPIV:    Surface images scaled to have the same
+%                           resolution as the PIV image but not cropped at 
+%                           all.
+%
+%
+%   There are also the following surfaces:
+%       surfaceSurfImgScaled:   the filtered surface output by the
+%                               surface detection function run on 
+%                               ImgScaledToPIVSmallCrop.
+%       surfacePIVImg:          surfaceSurfImgScaled cropped down to the
+%                               size of the PIV image
+%       surface_raw:            Unfiltered surface from surface detection,
+%                               has same dimensions as
+%                               surfaceSurfImgScaled.
 
 load(path,"imgPivsurf"); %replace ~ with path
 
-%Surface detection and Creating Masks
-U1 = [147 49;2024 57; 1995 1004; 161 999];
-X1 = [147 49; 2024 49; 2024 1004; 147 1004];
-T1 = fitgeotrans(U1,X1,'projective');
-d=imwarp(imgPivsurf,T1,'cubic');
-
-d=imresize(d,176.9769/105.5880);%Resizing to match PIV
-
-s=d(30:3525,755:755+2047); %cropping
+[scaledImg,scaledImgSmallCrop,scaledCroppedImg] = SurfImgToPIVDims(imgPivsurf);
 
 surfSigmas = [50 40 30 20 15];
 surfSteps = [50 40 30 5];
 % SurfMask = 1;
 slopeDiffThreshold = 5;
-imSurf = CrapperOptimized_FindSurface(s, surfSigmas, surfSteps, 1, slopeDiffThreshold);
-imSurf.surface = FiltSurf(imSurf.surface_raw,200);
+Surf = CrapperOptimized_FindSurface(scaledImgSmallCrop, surfSigmas, surfSteps, 1, slopeDiffThreshold);
+Surf.surfaceSurfImgScaled = FiltSurf(Surf.surface_raw,200);
 
-imSurf.surfacePreOffset = imSurf.surface;
-imSurf.surface=imSurf.surface-1716+287;
+Surf.surfacePIVImg = CropSurfToPIVDims(Surf.surfaceSurfImgScaled);
 
-if ~isnan(NameValueArgs.maskDims)
-    w = NameValueArgs.maskDims(2);
-    mask=ones(NameValueArgs.maskDims);
+if NameValueArgs.findMask
+    w = 2048;
+    mask=ones(w);
 
     for i=1:w
-        mask(1:round(imSurf.surface(i)),i)=NaN;
+        mask(1:round(Surf.surfacePIVImg(i)),i)=NaN;
     end
 
     warning off
-    imSurf.mask=mask;
+    Surf.mask=mask;
 end
 
-imSurf.s = s;
-imSurf.d = d;
+Surf.ImgScaledCroppedToPIV = scaledCroppedImg;
+Surf.ImgScaledToPIVSmallCrop = scaledImgSmallCrop;
+Surf.ImgScaledToPIV = scaledImg;
 
 end
 
