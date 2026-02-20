@@ -1,4 +1,4 @@
-function [imSurf] = CrapperOptimized_FindSurface(img, Sigma, Step,  mask, slopeDiffThreshold)
+function [Surf] = CrapperOptimized_FindSurface(img, Sigma, Step,  mask, slopeDiffThreshold)
 % This function finds the surface in PIV Surf as well as LFV images. It was
 % basically written by Marc Buckley on the August 22 2013, and the original
 % file can be found in the following directory:  \MFiles\surface_detection\
@@ -69,15 +69,6 @@ for j = 1:length(Step)
     end
 end
 
-% imSurf = surface;
-% surface(abs(surface-nanmean(surface))>4*std(surface)) = nan;
-
-% inn = ~isnan(surface);
-% i1 = (1:numel(surface)).';
-% pp = interp1(i1(inn),surface(inn),'linear','pp');
-% surface_s = fnval(pp,linspace(i1(1),i1(end),length(surface)))';
-
-imSurf.surface_raw = surface;
-% imSurf.surface = surface_s;
-imSurf.badFrameBool = badFrameBool;
+Surf.surface_raw = surface;
+Surf.badFrameBool = badFrameBool;
 end
