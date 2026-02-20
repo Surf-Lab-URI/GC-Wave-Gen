@@ -52,7 +52,7 @@ end
 
 %%%%%% End of stuff added by Andy to quickly flip through frames.
 
-for image_pair_number = 123%123%image_pair_number=0:number_of_pair-1
+for image_pair_number = 140%123%image_pair_number=0:number_of_pair-1
 %PIV
 load([load_path '/PIVRaw/PIV/' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
 IM_a = imgPiv;
@@ -62,25 +62,25 @@ IM_b = imgPiv;
 [h, w] = size(IM_a);
  
 %PIV Surf
-imSurfa = FindSurfaceCapillary([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat'], maskDims = size(IM_a)); 
+imSurfa = FindSurfaceCapillary([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat'], findMask = true); 
 
-imSurfb = FindSurfaceCapillary([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat'], maskDims = size(IM_a));
+imSurfb = FindSurfaceCapillary([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat'], findMask = true);
 
 cl = [1,0.4,0.4];
 
 figure(5)
 hold off
-imagesc(imSurfa.s,[0,300])
+imagesc(imSurfa.ImgScaledToPIVSmallCrop,[0,300])
 hold on
-plot(imSurfa.surfacePreOffset, '-', 'Color', cl)
+plot(imSurfa.surfaceSurfImgScaled, '-', 'Color', cl)
 plot(imSurfa.surface_raw, '-r')
 daspect([1,1,1])
 
 figure(6)
 hold off
-imagesc(imSurfb.s,[0,300])
+imagesc(imSurfb.ImgScaledToPIVSmallCrop,[0,300])
 hold on
-plot(imSurfb.surfacePreOffset, '-', 'Color', cl)
+plot(imSurfb.surfaceSurfImgScaled, '-', 'Color', cl)
 plot(imSurfb.surface_raw, '-r')
 daspect([1,1,1])
 
@@ -88,7 +88,7 @@ figure(7)
 imagesc(IM_a,[0,300])
 hold on
 colormap gray
-plot(imSurfa.surface,'Color', cl,'LineWidth',2)
+plot(imSurfa.surfacePIVImg,'Color', cl,'LineWidth',2)
 daspect([1,1,1])
 xlim([500,900])
 ylim([200,600])
@@ -97,7 +97,7 @@ figure(8)
 imagesc(IM_b,[0,300])
 hold on
 colormap gray
-plot(imSurfb.surface, 'Color', cl,'LineWidth',2)
+plot(imSurfb.surfacePIVImg, 'Color', cl,'LineWidth',2)
 daspect([1,1,1])
 xlim([500,900])
 ylim([200,600])
@@ -162,7 +162,7 @@ titleStr = sprintf('ExpLC%s-%s Pair Number %d', exp_name(end-3:end-3), exp_name(
 title(titleStr,'Interpreter','latex')
 daspect([1,1,1])
 %% Draw lines of constant s and n on the velocity field
-surf = imSurfa.surface;
+surf = imSurfa.surfacePIVImg;
 surfLen = length(surf);
 s = 1:surfLen;
 T = zeros(2,surfLen);
