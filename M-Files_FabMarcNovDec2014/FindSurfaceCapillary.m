@@ -1,7 +1,8 @@
 function Surf = FindSurfaceCapillary(path,NameValueArgs)
     arguments
         path
-        NameValueArgs.findMask = false; 
+        NameValueArgs.findMask = false;
+        NameValueArgs.returnImgs = true;
     end
 %FINDSURFACECAPILLARY Finds the surface in a surface image
 %   Takes as input a path and to the surface image. If you want want it to
@@ -60,9 +61,11 @@ if NameValueArgs.findMask
     Surf.mask=mask;
 end
 
-Surf.ImgScaledCroppedToPIV = scaledCroppedImg;
-Surf.ImgScaledToPIVSmallCrop = scaledImgSmallCrop;
-Surf.ImgScaledToPIV = scaledImg;
+if NameValueArgs.returnImgs
+    Surf.ImgScaledCroppedToPIV = scaledCroppedImg;
+    Surf.ImgScaledToPIVSmallCrop = scaledImgSmallCrop;
+    Surf.ImgScaledToPIV = scaledImg;
+end
 
 end
 
