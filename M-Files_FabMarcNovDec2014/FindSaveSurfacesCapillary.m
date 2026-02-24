@@ -6,12 +6,12 @@ LONG = '/media/surflab/LC_Working24/LC/FabMarcNovDec2014/data/Longitudinal/PIVdt
 
 expDirs=dir(LONG); % Find all the experiment directories. 
 expDirs=expDirs(3:end-1); %Exclude . and .. dirs as well as the results dir.
-i = 1;
-% for i = 1:length(expDirs)
-ii = 2; %Index of the experiment run
+
+for ii = 1:length(expDirs)
+% ii = 1; %Index of the experiment run
 num_of_digits = 3; %Number of digits used in image number in file names
 exp_name = expDirs(ii).name;
-load_path = [LONG exp_name];
+load_path = [LONG exp_name]
 files=dir([load_path '/PIVRaw/PIV/*.mat']);
 runResultsDir = [load_path '/Results_Surflab/'];
 runResultsfname = [runResultsDir exp_name '_results.mat'];
@@ -56,9 +56,9 @@ parfor image_pair_number = 0:number_of_pair-1
     pair = struct();
     aPath = [load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat'];
     bPath = [load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat'];
-    pair.imSurfa = FindSurfaceCapillary(aPath);
+    pair.imSurfa = FindSurfaceCapillary(aPath, returnImgs = false);
     pair.imSurfa.path = aPath;
-    pair.imSurfb = FindSurfaceCapillary(bPath);
+    pair.imSurfb = FindSurfaceCapillary(bPath, returnImgs = false);
     pair.imSurfb.path = bPath;
     pairs{image_pair_number+1} = pair;
     disp(['Found surface for pair ' num2str(image_pair_number)])
@@ -132,4 +132,4 @@ exps{ii}.Surfs = Surfs;
 exps{ii}.exp_name = exp_name;
 exps{ii}.number_of_pair = number_of_pair;
 matCamp.exps = exps;
-% end
+end
