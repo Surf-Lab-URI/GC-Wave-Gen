@@ -77,8 +77,8 @@ surfsPIV = nan(number_of_pair*2,length(pairs{1}.imSurfa.surfacePIVImg));
 pairNum = nan(number_of_pair*2,1);
 paths = strings(number_of_pair*2,1);
 for image_pair_number = 0:number_of_pair-1
-    t(image_pair_number*2 + 1) = 2*image_pair_number*spp;
-    t(image_pair_number*2 + 2) = 2*image_pair_number*spp+dt_pair;
+    t(image_pair_number*2 + 1) = image_pair_number*spp;
+    t(image_pair_number*2 + 2) = image_pair_number*spp+dt_pair;
     pairNum(image_pair_number*2 + 1) = image_pair_number;
     pairNum(image_pair_number*2 + 2) = image_pair_number;
 
