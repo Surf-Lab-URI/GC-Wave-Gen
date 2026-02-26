@@ -8,12 +8,12 @@ resultsfname = [LONG, 'Results_Surflab/results.mat'];
 load(resultsfname,"exps")
 
 %% Plot surface variance for one experiment
-ii = 1;
+ii = 4;
 exp_name = exps{ii}.exp_name
 Surfs = exps{ii}.Surfs;
 eta = Surfs.eta;
 surfs = Surfs.surfs;
-x_eta = Surfs.x_eta;
+x_eta = (0:(size(eta,2)-1))*Surfs.dx;
 dx = Surfs.dx;
 dt_pair = Surfs.dt_pair;
 t_eta = Surfs.t;
@@ -29,6 +29,77 @@ trange = [10,40];
 figure(1)
 plot(t_eta, eta_var)
 set(gca, 'YLim',[0,2.5e-7],'XLim',trange)
+%% Plot IR cam temperature and surface elevation together
+IRDir = dir([LONG exp_name '/IRMat/']);
+IRDir = IRDir(3:end-1);
+itemp = 1;
+clear tempss eta_PIV_xs
+for tImg = 17.8:(1/7.2):21
+[~,surfIdx] = min(abs(t_eta-tImg));
+if mod(surfIdx,2) == 0
+    surfIdx = surfIdx-1;
+end
+surfIdx;
+t_eta(surfIdx)
+
+pairNum = Surfs.pairNum(surfIdx);
+
+IRNum = pairNum*6;
+
+if str2double(IRDir(IRNum+1).name(end-7:end-4))~=IRNum
+    disp("Warning: IR images missing. Number of file name doesn't match position in directory. Results may be wrong")
+end
+
+IRPath = IRDir(IRNum+1);
+
+load([IRPath.folder,'/',IRPath.name],'IR');
+
+figure(1)
+imagesc(IR.img,[19.5,20.5])
+colorbar
+hold on
+plot([290,290],[202,511],'-r','LineWidth',2)
+
+ir = IR.img(202:511,290)';
+x_ir = IR.DX*(0:length(ir)-1)-0.002;
+
+eta_PIV = -CropSurfToPIVDims(eta(surfIdx,:),false);
+x_eta_PIV = (0:length(eta_PIV)-1)*Surfs.dx;
+
+figure(2)
+ax1 = subplot(2,1,1);
+hold off
+plot(x_eta_PIV,eta_PIV,'LineWidth',3,'DisplayName','$\eta$')
+hold on
+daspect([1,1,1])
+ylim([-0.005,0.005])
+ax2 = subplot(2,1,2);
+hold off
+plot(x_ir,ir,'LineWidth',2,'DisplayName','Temperature')
+hold on
+xlim([x_ir(1),x_ir(end)])
+linkaxes([ax1,ax2],'x')
+
+eta_PIV_x = diff(eta_PIV)/Surfs.dx;
+temps = nan(1,length(eta_PIV_x));
+for i = 1:length(temps)
+    [~,idx_ir] = min(abs(x_eta_PIV(i)-x_ir));
+    temps(i) = ir(idx_ir);
+end
+eta_PIV_xs(itemp:(itemp+length(eta_PIV_x)-1)) = eta_PIV_x;
+tempss(itemp:(itemp+length(eta_PIV_x)-1)) = temps;
+itemp = itemp + length(eta_PIV_x);
+figure(3)
+plot(temps,abs(eta_PIV_x),'.r','MarkerSize',5)
+hold on
+set(gca,'FontSize',24,'TickLabelInterpreter','latex')
+xlabel('T ($\circ$ C)','Interpreter','latex')
+ylabel('$\eta_x$', 'Interpreter','latex')
+corrcoef(tempss, abs(eta_PIV_xs))
+
+pause
+end
+
 
 
 %% Plot hovemollerish thing V2: don't load everything all at once
