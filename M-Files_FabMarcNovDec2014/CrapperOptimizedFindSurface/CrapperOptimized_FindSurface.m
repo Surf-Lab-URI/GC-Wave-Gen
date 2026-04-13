@@ -7,7 +7,10 @@ function [Surf] = CrapperOptimized_FindSurface(img, Sigma, Step,  mask, slopeDif
 %    This function implements the basic snake segmentation contour. A snake
 %    is an active (moving) contour, in which the points are being attracted
 %    by edges and other image boundaries. In order to keep  contour smooth,
-%    a membrane and thin plate energy are used as contour regularization. 
+%    a membrane and thin plate energy are used as contour regularization.
+
+% Modified by Andy Goering in 2025 to add a user-specified number of
+% filtering layers
 
 %
 % outputs,
@@ -15,12 +18,14 @@ function [Surf] = CrapperOptimized_FindSurface(img, Sigma, Step,  mask, slopeDif
 %
 
 warning off
-% Eext1 = ExternalForceImage2D_fab_ExpAW(img,Sigma(1)).*mask;
+%Find edge
 Eext1 = -ExternalForceImage2D(img,0,1,0,Sigma(1)).*mask;
 Eext1(Eext1<0)=0;
+% 1D array to store surface elevation in surface image coordinates
 surface = zeros(1,size(img,2));
 badFrameBool = 0;
 for i=1:size(img,2)
+    %find peaks in the gradient at the first filtering level
     gv1 = abs(Eext1(:,i));
     [~,locs] = findpeaks(gv1, 'minpeakheight', max(gv1)/2, 'npeaks',1);
     if isempty(locs)
@@ -35,12 +40,12 @@ for i=1:size(img,2)
 
 end
 
+% Refine surface detection with additional filtering levels
 for j = 1:length(Step)
     lastsurf = surface;
-    %Eext = ExternalForceImage2D_fab_ExpAW(img,Sigma(j+1));
     Eext = ExternalForceImage2D(img,0,0.8,0.2,Sigma(j+1));
     for i=1:size(img,2)
-    
+        %start from location detected at previous level
         locs = lastsurf(i);
     
         if isempty(locs)
@@ -48,7 +53,7 @@ for j = 1:length(Step)
             badFrameBool = 1;
         elseif locs + Step(j) > size(img,1) || locs - Step(j) < 1  % bad frame
             badFrameBool = 1;
-        else
+        else % Find gradient maximum within Step(j) of where the surface was detected at the previous level
             gv2 = abs(Eext(locs-Step(j):locs+Step(j),i));
             [~, s_gv2] = max(gv2);
             surface(i) = s_gv2+locs-Step(j)-1;
@@ -61,7 +66,6 @@ for j = 1:length(Step)
     % Check for weird jumps introduced by the latest step. If the slope
     % of the surface at certain location is way higher than at the 
     % previous sigma, don't use this or subsequent sigma refinements.
-
     if any(abs(diff(surface)-diff(lastsurf)) > slopeDiffThreshold)
         surface = lastsurf;
         disp(['Exceeded slopeDiffThreshold at Sigma ',int2str(Sigma(j+1))])
