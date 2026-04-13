@@ -52,7 +52,7 @@ end
 
 %%%%%% End of stuff added by Andy to quickly flip through frames.
 
-for image_pair_number = 140%123%image_pair_number=0:number_of_pair-1
+for image_pair_number = 123%140%123%image_pair_number=0:number_of_pair-1
 %PIV
 load([load_path '/PIVRaw/PIV/' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
 IM_a = imgPiv;
