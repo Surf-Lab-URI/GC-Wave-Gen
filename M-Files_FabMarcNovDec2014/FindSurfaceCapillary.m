@@ -47,7 +47,7 @@ slopeDiffThreshold = 5;
 Surf = CrapperOptimized_FindSurface(scaledImgSmallCrop, surfSigmas, surfSteps, 1, slopeDiffThreshold);
 Surf.surfaceSurfImgScaled = FiltSurf(Surf.surface_raw,200);
 
-Surf.surfacePIVImg = CropSurfToPIVDims(Surf.surfaceSurfImgScaled);
+Surf.surfacePIVImg = CropSurfToPIVDims(Surf.surfaceSurfImgScaled,true);
 
 if NameValueArgs.findMask
     w = 2048;
