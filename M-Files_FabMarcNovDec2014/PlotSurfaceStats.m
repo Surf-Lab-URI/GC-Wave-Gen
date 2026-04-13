@@ -8,7 +8,9 @@ resultsfname = [LONG, 'Results_Surflab/results.mat'];
 load(resultsfname,"exps")
 
 %% Plot surface variance for one experiment
-ii = 4;
+ii = 11;
+% 5 is pretty good
+% 9 has a location where the temp and surface jump together
 exp_name = exps{ii}.exp_name
 Surfs = exps{ii}.Surfs;
 eta = Surfs.eta;
@@ -29,12 +31,110 @@ trange = [10,40];
 figure(1)
 plot(t_eta, eta_var)
 set(gca, 'YLim',[0,2.5e-7],'XLim',trange)
+%% Plot IR cam temperature and surface elevation together V2
+IRDir = dir([LONG exp_name '/IRMat/']);
+IRDir = IRDir(3:end-1);
+itemp = 1;
+itempmaxm = 1;
+clear tempss tempssmaxm eta_PIV_xs eta_PIV_xmaxms
+for tImg = 13.8:(1/7.2):21
+    [~,surfIdx] = min(abs(t_eta-tImg));
+    if mod(surfIdx,2) == 0
+        surfIdx = surfIdx-1;
+    end
+    surfIdx;
+    t_eta(surfIdx)
+    
+    pairNum = Surfs.pairNum(surfIdx);
+    
+    IRNum = pairNum*6;
+    
+    if str2double(IRDir(IRNum+1).name(end-7:end-4))~=IRNum
+        disp("Warning: IR images missing. Number of file name doesn't match position in directory. Results may be wrong")
+    end
+    
+    IRPath = IRDir(IRNum+1);
+    
+    load([IRPath.folder,'/',IRPath.name],'IR');
+    
+    figure(4)
+    imagesc(IR.img,[19.5,20.5])
+    hold on
+    set(gca,'FontSize',24,'TickLabelInterpreter','latex')
+    c = colorbar;
+    c.Label.String = 'T ($^\circ$ C)';
+    c.TickLabelInterpreter = "latex";
+    c.Label.Interpreter = 'latex';
+    plot([290,290],[202,511],'-r','LineWidth',2)
+    axis off
+    axis equal
+    
+    ir = IR.img(202:511,290)';
+    x_ir = IR.DX*(0:length(ir)-1)-0.002;
+    
+    eta_PIV = -CropSurfToPIVDims(eta(surfIdx,:),false);
+    x_eta_PIV = (0:length(eta_PIV)-1)*Surfs.dx;
+    
+
+    
+    eta_PIV_x = diff(eta_PIV)/Surfs.dx;
+    temps = nan(1,length(eta_PIV_x));
+    for i = 1:length(temps)
+        [~,idx_ir] = min(abs(x_eta_PIV(i)-x_ir));
+        temps(i) = ir(idx_ir);
+    end
+    eta_PIV_xs(itemp:(itemp+length(eta_PIV_x)-1)) = eta_PIV_x;
+    tempss(itemp:(itemp+length(eta_PIV_x)-1)) = temps;
+    itemp = itemp + length(eta_PIV_x);
+
+    [eta_PIV_x_maxMask,prom] = islocalmax(abs(eta_PIV_x));
+    eta_PIV_x_maxMask = prom > 0.05;
+    eta_PIV_xmaxm = eta_PIV_x(eta_PIV_x_maxMask);
+    tempsmaxm = temps(eta_PIV_x_maxMask)-mean(temps);
+    eta_PIV_xmaxms(itempmaxm:(itempmaxm+length(eta_PIV_xmaxm)-1)) = eta_PIV_xmaxm;
+    tempssmaxm(itempmaxm:(itempmaxm+length(eta_PIV_xmaxm)-1)) = tempsmaxm;
+    itempmaxm = itempmaxm + length(eta_PIV_x);
+
+    figure(2)
+    ax1 = subplot(2,1,1);
+    hold off
+    p1 = plot(x_eta_PIV(1:2:length(eta_PIV)),eta_PIV(1:2:length(eta_PIV)),'LineWidth',3,'DisplayName','$\eta$')
+    hold on
+    p2 = plot(x_eta_PIV(eta_PIV_x_maxMask), eta_PIV(eta_PIV_x_maxMask),'.r','MarkerSize',10,'DisplayName','$|\eta_x|$ Local Maxima');
+    set(gca,'FontSize',24,'TickLabelInterpreter','latex')
+    xlabel('x (m)','Interpreter','latex')
+    ylabel('$\eta$ (m)','Interpreter','latex')
+    daspect([1,1,1])
+    ylim([-0.005,0.005])
+    % legend('Interpreter','latex')
+    ax2 = subplot(2,1,2);
+    hold off
+    plot(x_ir,ir,'LineWidth',2,'DisplayName','Temperature')
+    hold on
+    set(gca,'FontSize',24,'TickLabelInterpreter','latex')
+    xlabel('x (m)','Interpreter','latex')
+    ylabel('T ($^\circ$ C)','Interpreter','latex')
+    xlim([x_ir(1),x_ir(end)])
+    ylim([19.5,21])
+    linkaxes([ax1,ax2],'x')
+
+    figure(3)
+    plot(tempsmaxm,abs(eta_PIV_xmaxm),'.r','MarkerSize',5)
+    hold on
+    set(gca,'FontSize',24,'TickLabelInterpreter','latex')
+    xlabel('T ($^\circ$ C)','Interpreter','latex')
+    ylabel('$\eta_x$', 'Interpreter','latex')
+    corrcoef(tempssmaxm, abs(eta_PIV_xmaxms))
+    
+    pause
+end
+
 %% Plot IR cam temperature and surface elevation together
 IRDir = dir([LONG exp_name '/IRMat/']);
 IRDir = IRDir(3:end-1);
 itemp = 1;
 clear tempss eta_PIV_xs
-for tImg = 17.8:(1/7.2):21
+for tImg = 13.8:(1/7.2):23
 [~,surfIdx] = min(abs(t_eta-tImg));
 if mod(surfIdx,2) == 0
     surfIdx = surfIdx-1;
@@ -99,8 +199,6 @@ corrcoef(tempss, abs(eta_PIV_xs))
 
 pause
 end
-
-
 
 %% Plot hovemollerish thing V2: don't load everything all at once
 % Assemble composite image for hovmoller plot
