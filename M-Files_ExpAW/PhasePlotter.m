@@ -227,72 +227,107 @@ for i = 1:numPairs
 
 end
 
-%% MAKE VIDEO FRAMES with phase speed label
-parfor idx = 0:(size(fXs,1)-1)
-    if mod(idx, 2) == 0
-        pairNum = floor(idx/2);
-        f1 = figure('units','pixels','Position',[0,0,2000,300])
-        
-        imagename = [PIVWaterDir(idx+1).folder '/' PIVWaterDir(idx+1).name];
-        imagename
-        
-        [IM1] = load_Image_IOCoreView_12MP(imagename);
-        PIVSurf_W1_Raw = IM1;
-        PIVSURF_W1 = PIVSurf_W1_Raw./(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)/max(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)))';
-        
-        [PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
-        [PIVSurf_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
-        surfImg = PIVSurf_CamAngle;
-        
-        hold off
-        imagesc(surfImg,[0,60])
-        hold on
-        axis off
-        daspect([1,1,1])
-        colormap gray
-        plot(fXs(idx+1,1:3:end),fYs(idx+1,1:3:end),'-r','LineWidth',2)
-        
-        xl = [501,4139];
-        yl = [1750,2250];
-        
-        xlim(xl);
-        ylim(yl);
-        
-        lsbm = 1e-2; % length of scale bar in meters
-        lsb = lsbm/mpp;
-        xsb = [xl(1)+(xl(2)-xl(1))*0.05, xl(1)+(xl(2)-xl(1))*0.05+lsb];
-        ysb = (yl(2) - (yl(2)-yl(1))*0.1)*[1 1];
-        try
-            delete(sb)
-            delete(sbt)
-        end
-        sb = plot(xsb,ysb,'-k', 'LineWidth',10);
-        
-        
-        sbl = sprintf('%d cm',lsbm*100);
-        sbt = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'FontSize',24,'Interpreter','latex');
-        
-        text(0.85*xsb(1),(yl(2) - (yl(2)-yl(1))*0.3),'Water','FontSize',24,'Interpreter','latex')
-        text(0.85*xsb(1),(yl(2) - (yl(2)-yl(1))*0.6),'Air','FontSize',24,'Interpreter','latex','Color',[1,1,1])
-        text(0.85*xsb(1),(yl(2) - (yl(2)-yl(1))*0.8),'$Wind \rightarrow$','FontSize',24,'Interpreter','latex','Color',[1,1,1])
-        
-        ttext = sprintf('t = %.1f s',t(idx+1));
-        text(xl(1)+(xl(2)-xl(1))*0.92, yl(2) - (yl(2)-yl(1))*0.9,ttext,'FontSize',24,'Interpreter','latex','Color',[1,1,1])
-        
-        if ~isnan(phaseSpeed(pairNum+1))
-            cptext = sprintf('$c_p = %.1f$ cm/s',phaseSpeed(pairNum+1)*100);
-            text(xl(1)+(xl(2)-xl(1))*0.45, yl(2) - (yl(2)-yl(1))*0.9,cptext,'FontSize',24,'Interpreter','latex','Color',[1,1,1])
-        end
-        
-        drawnow
-        
-        fname = ['videoframes/' DataPath(end-23:end-1) '_' num2str(idx) '.png']; % full name of image
-        % print('-djpeg','-r600',fname)     % save image with '-r200' resolution
-        % saveas(gcf,fname,'tiffn')
-        exportgraphics(gca,fname,'Resolution','1200')
-        close(f1)
+%% MAKE VIDEO FRAMES with phase speed label (rewritten with Claude)
+clear frames
+% Determine which indices we're processing (even only)
+allIdx = 350:(size(fXs,1)-400);
+evenIdx = allIdx(mod(allIdx, 2) == 0);
+numFrames = length(evenIdx);
+
+% Pre-allocate cell array for frames
+frames = cell(numFrames, 1);
+
+% Figure dimensions matching your current setup
+figWidth = 2000;
+figHeight = 300;
+
+parfor k = 1:numFrames
+    idx = evenIdx(k);
+    pairNum = floor(idx/2);
+    
+    % Create figure with specific pixel dimensions
+    f1 = figure('Units', 'pixels', 'Position', [0, 0, figWidth, figHeight], ...
+                'Color', 'w', 'Visible', 'off');  % 'off' can speed things up
+    
+    % Make axes fill the entire figure (no border)
+    ax = axes('Units', 'normalized', 'Position', [0 0 1 1]);
+    
+    imagename = [PIVWaterDir(idx+1).folder '/' PIVWaterDir(idx+1).name];
+    
+    [IM1] = load_Image_IOCoreView_12MP(imagename);
+    PIVSurf_W1_Raw = IM1;
+    PIVSURF_W1 = PIVSurf_W1_Raw./(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)/max(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)))';
+    
+    [PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
+    [PIVSurf_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
+    surfImg = PIVSurf_CamAngle;
+    
+    imagesc(ax, surfImg, [0, 60])
+    hold(ax, 'on')
+    axis(ax, 'off')
+    daspect(ax, [1, 1, 1])
+    colormap(ax, gray)
+    plot(ax, fXs(idx+1, 1:3:end), fYs(idx+1, 1:3:end), '-r', 'LineWidth', 2)
+    
+    xl = [501, 4139];
+    yl = [1750, 2250];
+    
+    xlim(ax, xl);
+    ylim(ax, yl);
+    
+    lsbm = 1e-2; % length of scale bar in meters
+    lsb = lsbm / mpp;
+    xsb = [xl(1) + (xl(2)-xl(1))*0.05, xl(1) + (xl(2)-xl(1))*0.05 + lsb];
+    ysb = (yl(2) - (yl(2)-yl(1))*0.1) * [1 1];
+    
+    plot(ax, xsb, ysb, '-k', 'LineWidth', 10);
+    
+    sbl = sprintf('%d cm', lsbm*100);
+    text(ax, xsb(2) + (xl(2)-xl(1))*0.01, ysb(2), sbl, 'FontSize', 34, 'Interpreter', 'latex');
+    
+    text(ax, 0.85*xsb(1), (yl(2) - (yl(2)-yl(1))*0.3), 'Water', 'FontSize', 34, 'Interpreter', 'latex')
+    text(ax, 0.85*xsb(1), (yl(2) - (yl(2)-yl(1))*0.6), 'Air', 'FontSize', 34, 'Interpreter', 'latex', 'Color', [1,1,1])
+    text(ax, 0.85*xsb(1), (yl(2) - (yl(2)-yl(1))*0.8), '$Wind \rightarrow$', 'FontSize', 34, 'Interpreter', 'latex', 'Color', [1,1,1])
+    
+    ttext = sprintf('t = %.1f s', t(idx+1)-11);
+    text(ax, xl(1) + (xl(2)-xl(1))*0.92, yl(2) - (yl(2)-yl(1))*0.9, ttext, 'FontSize', 34, 'Interpreter', 'latex', 'Color', [1,1,1])
+    
+    if ~isnan(phaseSpeed(pairNum+1))
+        cptext = sprintf('$c_p = %.1f$ cm/s', phaseSpeed(pairNum+1)*100);
+        text(ax, xl(1) + (xl(2)-xl(1))*0.45, yl(2) - (yl(2)-yl(1))*0.9, cptext, 'FontSize', 34, 'Interpreter', 'latex', 'Color', [1,1,1])
     end
+    
+    drawnow
+    
+    % Capture frame to cell array instead of saving to disk
+    frame = getframe(f1);
+    frames{k} = frame.cdata;  % Store just the RGB image data
+    
+    close(f1)
 end
+
+%% Write video sequentially (this is fast compared to frame generation) with Claude help
+fprintf('Writing video...\n');
+
+vidObj = VideoWriter(['videoframes/' DataPath(end-23:end-1) '.avi'], 'Uncompressed AVI');
+vidObj.FrameRate = 14.5/4;
+open(vidObj);
+
+for k = 1:numFrames
+    writeVideo(vidObj, frames{k});
+end
+
+close(vidObj);
+aviFile = ['videoframes/' DataPath(end-23:end-1) '.avi'];
+mp4File = ['videoframes/' DataPath(end-23:end-1) '.mp4'];
+system(['ffmpeg -i "' aviFile '" -c:v libx264 -pix_fmt yuv420p -crf 18 "' mp4File '"']);
+fprintf('Done!\n');
+
+
+
+% Clear frames from memory
+% clear frames;
+
 %% FULL SYNOPSIS: Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 2: Calculate Air PIV stats
 withAir = true;
 
