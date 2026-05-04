@@ -7,7 +7,7 @@ ROOTPath = '/media/surflab/Working24/ExpAW/';
 
 ExpDir = dir([ROOTPath 'Exp*']); % Directory with all the experiments
 
-i = 1; % ExpNumber
+i = 5; % ExpNumber
 runNum = 2;
 
 ExpAW = ExpDir(i).name(6);
@@ -198,6 +198,101 @@ eta_x = diff(eta/mpp,1,2);
 
 eta_x_var = sum((eta_x-mean(eta_x,2)).^2,2)/(size(eta_x,2)-1);
 
+%% FIND PHASE SPEED: using cross-correlation method
+
+phaseSpeed = nan(numPairs,1);
+P_threshold = 0.0004;
+
+for i = 1:numPairs
+    fa = (i-1)*2 + 1;
+    fb = (i-1)*2 + 2;
+    etaa = eta(fa,:);
+    etab = eta(fb,:);
+    [~,P] = islocalmin(etaa);
+    if max(P) > P_threshold
+        [r,lags] = xcorr(etaa,etab);
+        [~,iMaxR] = max(r);
+        lag = lags(iMaxR)
+        PS = -lag*mpp/dt_pair
+        phaseSpeed(i) = PS;
+        % figure(4)
+        % hold off
+        % plot(((lag+1):(length(etab) + lag))*mpp, -etab)
+        % hold on
+        % daspect([1,1,1])
+        % plot((1:length(etab))*mpp,-etaa)
+        % ylim([-5e-3,5e-3])
+        % pause
+    end
+
+end
+
+%% MAKE VIDEO FRAMES with phase speed label
+parfor idx = 0:(size(fXs,1)-1)
+    if mod(idx, 2) == 0
+        pairNum = floor(idx/2);
+        f1 = figure('units','pixels','Position',[0,0,2000,300])
+        
+        imagename = [PIVWaterDir(idx+1).folder '/' PIVWaterDir(idx+1).name];
+        imagename
+        
+        [IM1] = load_Image_IOCoreView_12MP(imagename);
+        PIVSurf_W1_Raw = IM1;
+        PIVSURF_W1 = PIVSurf_W1_Raw./(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)/max(smooth(mean(PIVSurf_W1_Raw(2000:end,:)),1000)))';
+        
+        [PIVSurfW1_Undistorted] = PIVSurfW_LensDistCorr(PIVSURF_W1);
+        [PIVSurf_CamAngle] = PIVSurfWater_CamAngle_Correction(PIVSurfW1_Undistorted);
+        surfImg = PIVSurf_CamAngle;
+        
+        hold off
+        imagesc(surfImg,[0,60])
+        hold on
+        axis off
+        daspect([1,1,1])
+        colormap gray
+        plot(fXs(idx+1,1:3:end),fYs(idx+1,1:3:end),'-r','LineWidth',2)
+        
+        xl = [501,4139];
+        yl = [1750,2250];
+        
+        xlim(xl);
+        ylim(yl);
+        
+        lsbm = 1e-2; % length of scale bar in meters
+        lsb = lsbm/mpp;
+        xsb = [xl(1)+(xl(2)-xl(1))*0.05, xl(1)+(xl(2)-xl(1))*0.05+lsb];
+        ysb = (yl(2) - (yl(2)-yl(1))*0.1)*[1 1];
+        try
+            delete(sb)
+            delete(sbt)
+        end
+        sb = plot(xsb,ysb,'-k', 'LineWidth',10);
+        
+        
+        sbl = sprintf('%d cm',lsbm*100);
+        sbt = text(xsb(2) + (xl(2)-xl(1))*0.01,ysb(2), sbl,'FontSize',24,'Interpreter','latex');
+        
+        text(0.85*xsb(1),(yl(2) - (yl(2)-yl(1))*0.3),'Water','FontSize',24,'Interpreter','latex')
+        text(0.85*xsb(1),(yl(2) - (yl(2)-yl(1))*0.6),'Air','FontSize',24,'Interpreter','latex','Color',[1,1,1])
+        text(0.85*xsb(1),(yl(2) - (yl(2)-yl(1))*0.8),'$Wind \rightarrow$','FontSize',24,'Interpreter','latex','Color',[1,1,1])
+        
+        ttext = sprintf('t = %.1f s',t(idx+1));
+        text(xl(1)+(xl(2)-xl(1))*0.92, yl(2) - (yl(2)-yl(1))*0.9,ttext,'FontSize',24,'Interpreter','latex','Color',[1,1,1])
+        
+        if ~isnan(phaseSpeed(pairNum+1))
+            cptext = sprintf('$c_p = %.1f$ cm/s',phaseSpeed(pairNum+1)*100);
+            text(xl(1)+(xl(2)-xl(1))*0.45, yl(2) - (yl(2)-yl(1))*0.9,cptext,'FontSize',24,'Interpreter','latex','Color',[1,1,1])
+        end
+        
+        drawnow
+        
+        fname = ['videoframes/' DataPath(end-23:end-1) '_' num2str(idx) '.png']; % full name of image
+        % print('-djpeg','-r600',fname)     % save image with '-r200' resolution
+        % saveas(gcf,fname,'tiffn')
+        exportgraphics(gca,fname,'Resolution','1200')
+        close(f1)
+    end
+end
 %% FULL SYNOPSIS: Setup for plotting eta_var, eta_x_var, windspeed, surface speed, Part 2: Calculate Air PIV stats
 withAir = true;
 
@@ -505,12 +600,14 @@ p3_2 = plot(ax3_1,t_airPIV,surfVelMeans*100,'-','LineWidth',3,'Color',co(4,:),'D
 s = sprintf("Linear Fit ($dU_{surf}/dt = %.2f\\ \\mathrm{cm/s^2}$)",100*surfVelFit(1));
 p3_3 = plot(ax3_1,t_lf,ySurfVelFit*100,'--','LineWidth',3,'Color',co(4,:),'DisplayName',s);
 if withMan
- p3_1 = plot(ax3_1,manTimes,manSurfVels*100,'o','MarkerSize',10,'MarkerEdgeColor','k','MarkerFaceColor',co(4,:),'DisplayName','Manual $U_{surf}$');
+    p3_1 = plot(ax3_1,manTimes,manSurfVels*100,'o','MarkerSize',10,'MarkerEdgeColor','k','MarkerFaceColor',co(4,:),'DisplayName','Manual $U_{surf}$');
 end
+p3_7 = plot(ax3_1,t_airPIV, phaseSpeed*100,':','LineWidth',3,'Color',co(4,:),'DisplayName','Cross-correlation $c_p$')
+ylim([0,35])
 set(ax3_1,'FontSize',18)
 set(ax3_1,'TickLabelInterpreter','latex')
 set(ax3_1,'XLim',trange)
-ylabel(ax3_1,'$U_{surf}$ (cm/s)','Interpreter','latex')
+ylabel(ax3_1,'$c_p,\ U_{surf}$ (cm/s)','Interpreter','latex')
 ax3_1.YColor = co(4,:);
 
 ax3_2 = axes(tlay);
@@ -544,9 +641,9 @@ ylabel(ax3_3,{'Shear Layer Depth'; '(cm)'},'Interpreter','latex')
 ax3_3.YColor = co(5,:);
 set(ax3_3,'FontSize',18,'TickLabelInterpreter','latex','XLim',trange,'YLim',[-2.3,0])
 if withMan
-    legend([p3_1, p3_2, p3_3, p3_4,p3_5,p3_6],'Interpreter','latex','Location', 'northwest')
+    legend([p3_1, p3_2, p3_3, p3_4,p3_5,p3_6,p3_7],'Interpreter','latex','Location', 'northwest')
 else
-    legend([p3_2, p3_3,p3_5,p3_6],'Interpreter','latex','Location', 'northwest')
+    legend([p3_2, p3_3,p3_5,p3_6,p3_7],'Interpreter','latex','Location', 'northwest')
 end
 
 % Tile 4: Surface Area
