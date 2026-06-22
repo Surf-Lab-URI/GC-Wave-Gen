@@ -3,6 +3,7 @@ function Surf = FindSurfaceCapillary(path,NameValueArgs)
         path
         NameValueArgs.findMask = false;
         NameValueArgs.returnImgs = true;
+        NameValueArgs.surfOffset = 0;
     end
 %FINDSURFACECAPILLARY Finds the surface in a surface image
 %   Takes as input a path and to the surface image. If you want want it to
@@ -45,6 +46,7 @@ surfSteps = [50 40 30 5];
 % SurfMask = 1;
 slopeDiffThreshold = 5;
 Surf = CrapperOptimized_FindSurface(scaledImgSmallCrop, surfSigmas, surfSteps, 1, slopeDiffThreshold);
+Surf.surface_raw = Surf.surface_raw + NameValueArgs.surfOffset;
 Surf.surfaceSurfImgScaled = FiltSurf(Surf.surface_raw,200);
 
 Surf.surfacePIVImg = CropSurfToPIVDims(Surf.surfaceSurfImgScaled,true);
