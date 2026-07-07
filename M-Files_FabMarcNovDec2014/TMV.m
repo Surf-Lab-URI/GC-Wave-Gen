@@ -17,15 +17,25 @@ load([IRPath.folder,'/',IRPath.name],'IR');
 IRSample = IR;
 IRfps = 1/(0.1389/6);
 
-usurf = nan(length(IRDir)-1,1);
-usurfpx = nan(length(IRDir)-1,1);
-usurf0 = nan(length(IRDir)-1,1);
-usurf1 = nan(length(IRDir)-1,1);
-usurf2 = nan(length(IRDir)-1,1);
-TMVTech = nan(length(IRDir)-1,1);
+% Results arrays
+usurfpx    = nan(length(IRDir)-1,1);  % Selected technique's result (px/frame)
+usurfpx0   = nan(length(IRDir)-1,1);  % TMVTech 0 result for every frame (px/frame)
+usurfpx1   = nan(length(IRDir)-1,1);  % TMVTech 1 result for every frame (px/frame)
+TMVTech    = nan(length(IRDir)-1,1);  % Which technique the gate selected (0 or 1)
+corrmax0   = nan(length(IRDir)-1,1);  % Peak correlation for TMVTech 0 (weighted avg)
+corrmax1   = nan(length(IRDir)-1,1);  % Peak correlation for TMVTech 1
+Ndots_used = nan(length(IRDir)-1,1);  % Number of dots that passed threshold
 
-parfor i = 1:length(IRDir)-1
-    iA = i %140*6+40;
+% Parameters
+Ndots = 8;
+dot_spacing_px = 47.29;
+x_dot1 = 44;
+T_threshold = 20.75;
+corr_threshold = 0.5;  % Minimum peak correlation to accept a dot's measurement
+
+% Change parfor to for when debugging with figures
+parfor i = 1:900%410%1:1200
+    iA = i;
     iB = iA+1;
     IRPathA = IRDir(iA);
     IRPathB = IRDir(iB);
@@ -34,111 +44,206 @@ parfor i = 1:length(IRDir)-1
     IRA = IRA.IR;
     IRB = load([IRPathB.folder,'/',IRPathB.name],'IR');
     IRB = IRB.IR;
-    %%
-    % figure(1)
+    
+    % figure(4)
     % hold off
     % imagesc(IRA.img,[19.5,20.25])
     % 
-    % figure(2)
+    % figure(5)
     % hold off
     % imagesc(IRB.img,[19.5,20.25])
     
-    % tuk = tukeywin(size(IRA.img,1),0.05);
-    % Tuk = repmat(tuk,1,size(IRA.img,2));
-    
-    if mod(iA,24) > 1 && mod(iA,24) < 15
-        Tmax = 23;
-        Tmin = 19.5;
-        IRimAClip = IRA.img;
-        IRimAClip(IRimAClip > Tmax) = Tmax;
-        IRimBClip = IRB.img;
-        IRimBClip(IRimBClip > Tmax) = Tmax;
-        IRimAClip(IRimAClip < Tmin) = Tmin;
-        IRimBClip(IRimBClip < Tmin) = Tmin;
-        TMVTech(i) = 0;
-    elseif mod(iA,24) <=1
-        Tmax = 0.07;
-        Tmin = 0;
-        IRimAClip = -ExternalForceImage2D(IRA.img(200:end,:), 0, 1, 0, 3);
-        IRimBClip = -ExternalForceImage2D(IRB.img(200:end,:), 0, 1, 0, 3);
-        TMVTech(i) = 1;
-    else
-        Tmax = 0.07;
-        Tmin = 0.;
-        IRimAClip = -ExternalForceImage2D(IRA.img, 0, 1, 0, 3);
-        IRimBClip = -ExternalForceImage2D(IRB.img, 0, 1, 0, 3);
-        TMVTech(i) = 2;
-    end
-    
-    
-    % IRimAClip(IRimAClip < Tmin) = Tmin;
-    % IRimBClip(IRimBClip < Tmin) = Tmin;
-    
-    % IRimAClip = IRimAClip.*Tuk;
-    % IRimBClip = IRimBClip.*Tuk;
-    
-    % IRimAClip = IRimAClip(200:end,:);
-    % IRimBClip = IRimBClip(200:end,:);
+    % =====================================================================
+    % TMVTech 0: dot-based cross-correlation on clipped temperature images
+    % =====================================================================
+    Tmax = 23;
+    Tmin = 19.5;
+    IRimAClip = IRA.img;
+    IRimAClip(IRimAClip > Tmax) = Tmax;
+    IRimBClip = IRB.img;
+    IRimBClip(IRimBClip > Tmax) = Tmax;
+    IRimAClip(IRimAClip < Tmin) = Tmin;
+    IRimBClip(IRimBClip < Tmin) = Tmin;
     
     h = size(IRimAClip,1);
-    % m = abs((1:h)-round(h/2))';
-    % 
-    % fftA = fft2(IRimAClip);
-    % fftB = fft2(IRimBClip);
-    % fftCorr = fftB .* conj(fftA);
-    % 
-    % Xcorr = fftshift(real(ifft2(fftCorr)))./sqrt(sum(sum(IRimAClip.^2)))./sqrt(sum(sum(IRimBClip.^2))); % Cross Correlation
-    % Xcorr1D = Xcorr(:,round(size(Xcorr,2)/2));
-    % figure(4)
-    % hold off
-    % plot(Xcorr1D/max(m))
-    % % pause
-    % % hold on
-    % % Xcorr1D = 1./(h-m).*Xcorr1D;
-    % % plot(Xcorr1D)
-    % [~,Xpky] = max(Xcorr1D) % Find max in the cross correlation
-    % dely = Xpky - size(IRimAClip,1)/2-1
     
-    corr = zeros(1, round(h/9));
-    for m = 1:length(corr)
-        A = IRimAClip(1:(end-m),:);
-        B = IRimBClip((m+1):end,:);
+    weighted_sum_mmax = 0;
+    sum_weights = 0;
+    n_dots_ok = 0;
+    
+    for n = 1:Ndots
+        col_start = round(x_dot1 + (n-1)*dot_spacing_px);
+        col_end   = round(x_dot1 + n*dot_spacing_px);
+        IRimAStrip = IRimAClip(:, col_start:col_end);
+        IRimBStrip = IRimBClip(:, col_start:col_end);
+        
+        if max(IRimAStrip,[],'all') > T_threshold && max(IRimBStrip,[],'all') > T_threshold
+            Nm = round(h/12) + 1;             % include m=0
+            corr = zeros(1, Nm);
+            m_vals = 0:(Nm-1);
+            for k = 1:Nm
+                m = m_vals(k);
+                if m == 0
+                    A = IRimAStrip;
+                    B = IRimBStrip;
+                else
+                    A = IRimAStrip(1:(end-m),:);
+                    B = IRimBStrip((m+1):end,:);
+                end
+                A = A - mean(A(:));
+                B = B - mean(B(:));
+                corr(k) = sum(A.*B, "all") / (norm(A(:)) * norm(B(:)));
+            end
+            [cmax, kmax] = max(corr);
+            
+            if cmax > corr_threshold
+                kmax_sub = subpixel_peak(corr, kmax);
+                mmax_sub = kmax_sub - 1;      % convert index -> shift
+                weighted_sum_mmax = weighted_sum_mmax + cmax * mmax_sub;
+                sum_weights = sum_weights + cmax;
+                n_dots_ok = n_dots_ok + 1;
+                
+                % figure(1)
+                % hold off
+                % imagesc(IRimAStrip,[Tmin,Tmax])
+                % daspect([1,1,1])
+                % 
+                % figure(2)
+                % hold off
+                % imagesc(IRimBStrip,[Tmin,Tmax])
+                % daspect([1,1,1])
+                % 
+                % figure(3)
+                % plot(m_vals, corr)
+                % 
+                % mmax_sub
+            end
+        end
+    end
+    
+    if sum_weights > 0
+        dots_present = true;
+
+        mmax0 = weighted_sum_mmax / sum_weights;
+        cmax0 = sum_weights / n_dots_ok;
+
+        % Plot displaced image pair for debugging
+        % figure(4)
+        % hold off
+        % imagesc(IRA.img(1:(end-round(mmax0)),:),[19.5,21])
+        % 
+        % figure(5)
+        % hold off
+        % imagesc(IRB.img((1+round(mmax0)):end,:),[19.5,21])
+        % pause
+    else
+        dots_present = false;
+        mmax0 = nan;
+        cmax0 = nan;
+    end
+
+
+    % =====================================================================
+    % TMVTech 1: filtered full-image cross-correlation (always compute)
+    % =====================================================================
+    IRimAFilt = -ExternalForceImage2D(IRA.img(1:end,:), 0, 1, 0, 6);
+    IRimBFilt = -ExternalForceImage2D(IRB.img(1:end,:), 0, 1, 0, 6);
+    
+    h1 = size(IRimAFilt,1);
+    Nm = round(h1/12) + 1;
+    corr = zeros(1, Nm);
+    m_vals = 0:(Nm-1);
+    for k = 1:Nm
+        m = m_vals(k);
+        if m == 0
+            A = IRimAFilt;
+            B = IRimBFilt;
+        else
+            A = IRimAFilt(1:(end-m),:);
+            B = IRimBFilt((m+1):end,:);
+        end
         A = A - mean(A(:));
         B = B - mean(B(:));
-        corr(m) = sum(A.*B, "all") / (norm(A(:)) * norm(B(:)));
+        corr(k) = sum(A.*B, "all") / (norm(A(:)) * norm(B(:)));
     end
-    [corrmax, mmax] = max(corr);
+    [cmax1, kmax] = max(corr);
+    kmax_sub = subpixel_peak(corr, kmax);
+    mmax1 = kmax_sub - 1;                     % convert index -> shift
     
     % figure(1)
     % hold off
-    % imagesc(IRimAClip,[Tmin,Tmax])
+    % imagesc(IRimAFilt)
+    % daspect([1,1,1])
     % 
     % figure(2)
     % hold off
-    % imagesc(IRimBClip,[Tmin,Tmax])
+    % imagesc(IRimBFilt)
+    % daspect([1,1,1])
     % 
     % figure(3)
-    % plot(corr)
-    % 
-    % pause(0.01)
-    % 
-    % figure(4)
-    % hold on
-    % plot(i, mmax,'.r')
+    % plot(m_vals, corr)
     
-    usurfpx(i) = mmax;
-    if TMVTech(i) == 0
-        usurf0(i) = mmax;
-    elseif TMVTech(i) == 1
-        usurf1(i) = mmax;
+    % =====================================================================
+    % Store both results plus the gate decision
+    % =====================================================================
+    usurfpx0(i)   = mmax0;
+    usurfpx1(i)   = mmax1;
+    corrmax0(i)   = cmax0;
+    corrmax1(i)   = cmax1;
+    Ndots_used(i) = n_dots_ok;
+    
+    if dots_present
+        TMVTech(i) = 0;
+        usurfpx(i) = mmax0;
     else
-        usurf2(i) = mmax;
+        TMVTech(i) = 1;
+        usurfpx(i) = mmax1;
     end
 end
-usurf = usurfpx*IRfps*IRSample.DX;
-usurf0 = usurf0*IRfps*IRSample.DX;
-usurf1 = usurf1*IRfps*IRSample.DX;
-usurf2 = usurf2*IRfps*IRSample.DX;
+
+% Convert from px/frame to physical velocity units
+usurf  = usurfpx  * IRfps * IRSample.DX;
+usurf0 = usurfpx0 * IRfps * IRSample.DX;
+usurf1 = usurfpx1 * IRfps * IRSample.DX;
+
+
+function m_sub = subpixel_peak(corr, k_int)
+% Parabolic fit through three points around the peak for sub-pixel accuracy.
+% Returns the sub-pixel-refined *index* into corr (still 1-based); the
+% caller is responsible for converting index -> shift if needed.
+    if k_int <= 1 || k_int >= length(corr)
+        m_sub = k_int;
+        return
+    end
+    y1 = corr(k_int - 1);
+    y2 = corr(k_int);
+    y3 = corr(k_int + 1);
+    denom = (y1 - 2*y2 + y3);
+    if denom == 0
+        m_sub = k_int;
+    else
+        delta = 0.5 * (y1 - y3) / denom;
+        m_sub = k_int + delta;
+    end
+end
+
+%%
+% Example comparison plot (run after the parfor loop finishes)
+figure
+hold on
+plot(usurf0, '.-', 'DisplayName', 'TMVTech 0 (dots)')
+plot(usurf1, '.-', 'DisplayName', 'TMVTech 1 (filtered)')
+xlabel('Frame index')
+ylabel('Surface velocity (m/s)')
+legend
+
+figure
+plot(usurf0, usurf1, '.')
+hold on
+plot(xlim, xlim, 'k--')  % 1:1 line
+xlabel('TMVTech 0 velocity (m/s)')
+ylabel('TMVTech 1 velocity (m/s)')
+axis equal
 %% Plotting Results
 figure(5)
 hold off
@@ -147,7 +252,6 @@ plot(t,usurf,'DisplayName','raw')
 hold on
 plot(t,usurf0,'.','DisplayName','Tech 0, raw')
 plot(t,usurf1,'.','DisplayName','Tech 1, raw')
-plot(t,usurf2,'.','DisplayName','Tech 2, raw')
 plot(t,movmean(usurf,20),'DisplayName','filtered')
 plot(t,movmean(usurf0,20,'omitmissing'),'DisplayName','Tech0, filtered')
 % plot(t,movmean(usurf1,20,'omitmissing'),'DisplayName','Tech2, filtered')
