@@ -1,27 +1,34 @@
-LONG=['D:\CURRENT_PROJECTS\LC\FabMarcNovDec2014\Data\Longitudinal\PIVdt10ms_IRlas1_8hz\']
+% LONG=['D:\CURRENT_PROJECTS\LC\FabMarcNovDec2014\Data\Longitudinal\PIVdt10ms_IRlas1_8hz\']
+clear
+clc
+close all
+
+LONG = '/media/surflab/LC_Working24/LC/FabMarcNovDec2014/data/Longitudinal/PIVdt10ms_IRlas1_8hz/';
 DIRS=dir(LONG);
 DIRS=DIRS(3:end);
 
-for ii=1:length(DIRS)
+% for ii=1:length(DIRS)
+ii = 1;
 
 exp_name=DIRS(ii).name;
 
 num_of_digits = 3;
 load_path = [LONG exp_name];
-files=dir([load_path '\PIVRaw\PIV\*.mat']);
+files=dir([load_path '/PIVRaw/PIV/*.mat']);
 number_of_pair=length(files)/2;
 
-for image_pair_number=0:number_of_pair-1
+% for image_pair_number=0:number_of_pair-1
+image_pair_number = 180;
 %PIV
-load([load_path '\PIVRaw\PIV\' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
+load([load_path '/PIVRaw/PIV/' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
 IM_a = imgPiv;
-load([load_path '\PIVRaw\PIV\' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat']); %replace ~ with path
+load([load_path '/PIVRaw/PIV/' exp_name '_Piv_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat']); %replace ~ with path
 IM_b = imgPiv;
  
 %PIV Surf
-load([load_path '\PIVRaw\PIVSURF\' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
+load([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_a.mat']); %replace ~ with path
 imgPivsurf1 = imgPivsurf;
-load([load_path '\PIVRaw\PIVSURF\' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat']); %replace ~ with path
+load([load_path '/PIVRaw/PIVSURF/' exp_name '_Pivsurf_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number) '_b.mat']); %replace ~ with path
 imgPivsurf2 = imgPivsurf;
 
 %Surface detection and Creating Masks
@@ -57,8 +64,8 @@ compVel =  computeVelocities_marc_quick_nofilt(IM_a, IM_b, mask1, mask2, IntrWnd
 compVel.DX=1/17697.69; %m per pix
 compVel.DT=10d-3; % sec per image pair -  DELTA_T= 10 milisec
 
-outfile = [load_path '\PIVMat_2023\' exp_name '_compVel_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number)];
-save(outfile, 'compVel', 'imSurf1', 'imSurf2');
+% outfile = [load_path '/PIVMat_2023/' exp_name '_compVel_' sprintf(['%0' num2str(num_of_digits) 'd'], image_pair_number)];
+% save(outfile, 'compVel', 'imSurf1', 'imSurf2');
 disp(['pair ' num2str(image_pair_number) ' velocity done.']);
 
 %%
